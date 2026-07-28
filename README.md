@@ -43,5 +43,5 @@ API REST desenvolvida em Python (FastAPI) e MySQL para gerenciamento avançado d
 
 1. **Clonar o repositório:**
    ```bash
-   git clone <URL_DO_REPOSITORIO>
+   git clone https://github.com/GeovaneParedes/carteira-digital
    cd finance_app
