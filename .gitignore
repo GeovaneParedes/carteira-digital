@@ -1,0 +1,37 @@
+# Python & Virtualenv
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Databases & local data
+*.db
+*.sqlite3
+finance_dev.db
+
+# Node & Frontend
+node_modules/
+finance-frontend/node_modules/
+finance-frontend/.next/
+finance-frontend/out/
+finance-frontend/build/
+.next/
+out/
+build/
+.vscode/
+
+# Environment files & Secrets
+.env
+.env.local
+.env.*.local
+
+# OS generated files
+.DS_Store
+Thumbs.db

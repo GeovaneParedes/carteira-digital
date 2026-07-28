@@ -1,0 +1,12 @@
+fastapi>=0.109.0
+uvicorn>=0.27.0
+sqlalchemy>=2.0.25
+psycopg2-binary>=2.9.9
+pymysql>=1.1.0
+pydantic>=2.6.0
+pydantic-settings>=2.1.0
+cryptography>=42.0.0
+pytest>=8.0.0
+httpx>=0.26.0
+ruff>=0.1.14
+mypy>=1.8.0
