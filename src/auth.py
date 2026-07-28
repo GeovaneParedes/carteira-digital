@@ -89,10 +89,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    try:
-        email = decode_access_token(credentials.credentials)
-    except HTTPException:
-        raise
+    email = decode_access_token(credentials.credentials)
 
     usuario = db.query(UsuarioModel).filter(UsuarioModel.email == email).first()
     if not usuario:

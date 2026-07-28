@@ -1,11 +1,15 @@
-from typing import List
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from src.auth import create_access_token, get_current_user, hash_password, verify_password
+from src.auth import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    verify_password,
+)
 from src.database import get_db, init_db
 from src.models import UsuarioModel
 from src.repository import TransacaoRepository
@@ -73,7 +77,7 @@ def login_usuario(usuario_in: UsuarioLogin, db: Session = Depends(get_db)):
     return TokenResponse(access_token=create_access_token(usuario.email))
 
 
-@app.get("/transacoes", response_model=List[TransacaoResponse])
+@app.get("/transacoes", response_model=list[TransacaoResponse])
 def listar_transacoes(
     db: Session = Depends(get_db),
     usuario_atual: UsuarioModel = Depends(get_current_user),

@@ -1,7 +1,8 @@
-from typing import List, Optional
-from sqlalchemy.orm import Session
+
 from sqlalchemy import func
-from src.models import TransacaoModel, TipoTransacao
+from sqlalchemy.orm import Session
+
+from src.models import TipoTransacao, TransacaoModel
 from src.schemas import BalancoResponse, TransacaoCreate, TransacaoUpdate
 
 
@@ -20,7 +21,7 @@ class TransacaoRepository:
         self.db.refresh(transacao)
         return transacao
 
-    def listar_todas(self) -> List[TransacaoModel]:
+    def listar_todas(self) -> list[TransacaoModel]:
         return (
             self.db.query(TransacaoModel)
             .filter(TransacaoModel.usuario_id == self.usuario_id)
@@ -28,7 +29,7 @@ class TransacaoRepository:
             .all()
         )
 
-    def obter_por_id(self, transacao_id: int) -> Optional[TransacaoModel]:
+    def obter_por_id(self, transacao_id: int) -> TransacaoModel | None:
         return (
             self.db.query(TransacaoModel)
             .filter(
@@ -38,7 +39,7 @@ class TransacaoRepository:
             .first()
         )
 
-    def atualizar(self, transacao_id: int, transacao_in: TransacaoUpdate) -> Optional[TransacaoModel]:
+    def atualizar(self, transacao_id: int, transacao_in: TransacaoUpdate) -> TransacaoModel | None:
         transacao = self.obter_por_id(transacao_id)
         if not transacao:
             return None

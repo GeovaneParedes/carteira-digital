@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -37,11 +37,11 @@ class TransacaoCreate(BaseModel):
     valor: Decimal = Field(..., gt=0)
     categoria: str = Field(..., min_length=1, max_length=100)
     forma_pagamento: FormaPagamento
-    banco: Optional[str] = None
-    data_transacao: Optional[datetime] = Field(
+    banco: str | None = None
+    data_transacao: datetime | None = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
-    data_vencimento: Optional[date] = None
+    data_vencimento: date | None = None
     pago: bool = True
 
     @field_validator("data_vencimento", "data_transacao", "banco", mode="before")
@@ -55,15 +55,15 @@ class TransacaoCreate(BaseModel):
 class TransacaoUpdate(BaseModel):
     """DTO para atualização parcial de transação."""
 
-    descricao: Optional[str] = Field(default=None, min_length=1, max_length=255)
-    tipo: Optional[TipoTransacao] = None
-    valor: Optional[Decimal] = Field(default=None, gt=0)
-    categoria: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    forma_pagamento: Optional[FormaPagamento] = None
-    banco: Optional[str] = None
-    data_transacao: Optional[datetime] = None
-    data_vencimento: Optional[date] = None
-    pago: Optional[bool] = None
+    descricao: str | None = Field(default=None, min_length=1, max_length=255)
+    tipo: TipoTransacao | None = None
+    valor: Decimal | None = Field(default=None, gt=0)
+    categoria: str | None = Field(default=None, min_length=1, max_length=100)
+    forma_pagamento: FormaPagamento | None = None
+    banco: str | None = None
+    data_transacao: datetime | None = None
+    data_vencimento: date | None = None
+    pago: bool | None = None
 
     model_config = ConfigDict(extra="ignore")
 

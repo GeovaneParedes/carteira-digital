@@ -1,7 +1,7 @@
 [project]
 name = "finance-app"
 version = "0.1.0"
-description = "API REST de Controle Financeiro com FastAPI e MySQL"
+description = "API REST de Controle Financeiro com FastAPI e PostgreSQL"
 dependencies = [
     "fastapi>=0.109.0",
     "uvicorn>=0.27.0",
@@ -12,9 +12,13 @@ dependencies = [
     "pydantic-settings>=2.1.0",
     "cryptography>=42.0.0"
 ]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff.lint]
+ignore = ["B008"]
 
 [project.optional-dependencies]
 dev = [
