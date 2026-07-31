@@ -5,13 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from src.auth import (
-    criar_token_acesso,
+    create_access_token,
     get_current_user,
     hash_password,
-    verificar_senha,
+    verify_password,
 )
 from src.database import Base, engine, get_db
-from src.email_service import enviar_email_recuperacao
+from src.email_service import enviar_email_codigo_recuperacao
 from src.models import UsuarioModel, CartaoCreditoModel
 from src.repository import TransacaoRepository, CartaoRepository
 from src.schemas import (
@@ -64,7 +64,7 @@ def registrar(usuario_in: UsuarioCreate, db: Session = Depends(get_db)):
     cartao_repo = CartaoRepository(db, novo_usuario.id)
     cartao_repo.inicializar_cartoes_padrao()
 
-    token = criar_token_acesso(novo_usuario.email)
+    token = create_access_token(novo_usuario.email)
     return TokenResponse(access_token=token)
 
 
@@ -72,13 +72,13 @@ def registrar(usuario_in: UsuarioCreate, db: Session = Depends(get_db)):
 def login(usuario_in: UsuarioLogin, db: Session = Depends(get_db)):
     """Autentica o usuário e gera o JWT Token."""
     usuario = db.query(UsuarioModel).filter(UsuarioModel.email == usuario_in.email).first()
-    if not usuario or not verificar_senha(usuario_in.senha, usuario.senha_hash):
+    if not usuario or not verify_password(usuario_in.senha, usuario.senha_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciais inválidas",
         )
 
-    token = criar_token_acesso(usuario.email)
+    token = create_access_token(usuario.email)
     return TokenResponse(access_token=token)
 
 
@@ -96,7 +96,7 @@ def esqueci_senha(req: EsqueciSenhaRequest, db: Session = Depends(get_db)):
     db.commit()
 
     try:
-        enviar_email_recuperacao(usuario.email, codigo)
+        enviar_email_codigo_recuperacao(usuario.email, codigo)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Falha ao enviar e-mail: {str(e)}")
 
@@ -125,7 +125,7 @@ def redefinir_senha(req: RedefinirSenhaRequest, db: Session = Depends(get_db)):
     usuario.codigo_expiracao = None
     db.commit()
 
-    token = criar_token_acesso(usuario.email)
+    token = create_access_token(usuario.email)
     return TokenResponse(access_token=token)
 
 
