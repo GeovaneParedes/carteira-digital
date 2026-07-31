@@ -150,7 +150,7 @@ def obter_balanco(
 ):
     """Obtém os somatórios de ganhos, gastos e saldo do usuário."""
     repo = TransacaoRepository(db, usuario_id=usuario_atual.id)
-    return repo.obter_balanco()
+    return repo.calcular_balanco()
 
 
 @app.put("/transacoes/{transacao_id}", response_model=TransacaoResponse)
