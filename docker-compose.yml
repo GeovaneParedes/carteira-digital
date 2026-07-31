@@ -41,12 +41,12 @@ services:
     build:
       context: ./finance-frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://192.168.100.9:8010
     container_name: carteira_frontend
     restart: always
     ports:
       - "3005:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://192.168.100.9:8010
     depends_on:
       - api
     networks:
