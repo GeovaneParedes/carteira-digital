@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: finance_postgres
+    container_name: carteira_postgres
     restart: always
     environment:
       POSTGRES_USER: finance_user
@@ -23,17 +23,32 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: finance_api
+    container_name: carteira_backend
     restart: always
     ports:
       - "8010:8000"
     environment:
       - DATABASE_URL=postgresql://finance_user:finance_password@db:5432/finance_db
-      - SECRET_KEY=dev-secret-key-mude-para-valor-forte
-      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+      - SECRET_KEY=carteira-digital-producao-secret-key-super-segura
+      - ACCESS_TOKEN_EXPIRE_MINUTES=43200
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - finance_net
+
+  frontend:
+    build:
+      context: ./finance-frontend
+      dockerfile: Dockerfile
+    container_name: carteira_frontend
+    restart: always
+    ports:
+      - "3005:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://192.168.100.9:8010
+    depends_on:
+      - api
     networks:
       - finance_net
 
