@@ -31,7 +31,8 @@ export interface CartaoCredito {
   nome: string;
   bandeira?: string;
   limiteTotal: number;
-  limiteUsado: number;
+  limiteUsado: number; // Montante Total Comprometido (Parcelados a vencer)
+  faturaMensal: number; // Fatura exata do Mês Atual
   diaFechamento: number;
   diaVencimento: number;
   saldoInvestimento?: number;

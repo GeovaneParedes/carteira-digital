@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { CartaoCredito } from '@/lib/types';
-import { CreditCard, Edit3, Trash2, TrendingUp, Calendar } from 'lucide-react';
+import { CreditCard, Edit3, Trash2, TrendingUp, Calendar, Receipt } from 'lucide-react';
 
 interface CreditCardProps {
   cartao: CartaoCredito;
@@ -59,17 +59,28 @@ export function CreditCardCard({ cartao, onEdit, onDelete }: CreditCardProps) {
         </div>
       </div>
 
-      {/* Valores de Limite */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Destaque para Fatura do Mês Atual vs Total Comprometido */}
+      <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Receipt className="w-4 h-4 text-amber-400" />
+          <span className="text-xs text-slate-300 font-semibold">Fatura a Pagar (Mês):</span>
+        </div>
+        <span className="text-sm font-extrabold text-amber-400">
+          R$ {(cartao.faturaMensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        </span>
+      </div>
+
+      {/* Valores de Limite Disponível e Total Comprometido (Parcelados) */}
+      <div className="grid grid-cols-2 gap-4 text-xs">
         <div>
           <p className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Limite Disponível</p>
-          <p className="text-xl font-bold text-emerald-400 mt-0.5">
+          <p className="text-lg font-bold text-emerald-400 mt-0.5">
             R$ {limiteDisponivel.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
         <div>
-          <p className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Fatura / Usado</p>
-          <p className="text-xl font-bold text-slate-200 mt-0.5">
+          <p className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Total Comprometido</p>
+          <p className="text-lg font-bold text-slate-200 mt-0.5" title="Soma dos parcelados a vencer futuros">
             R$ {cartao.limiteUsado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
@@ -91,12 +102,12 @@ export function CreditCardCard({ cartao, onEdit, onDelete }: CreditCardProps) {
 
       {/* Informações Complementares: Saldo em Investimento & Detalhes */}
       {cartao.saldoInvestimento != null && cartao.saldoInvestimento > 0 && (
-        <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs text-slate-300 font-medium">Investimento Garantia/Reserva:</span>
+        <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-slate-300 font-medium">Investimento Garantia:</span>
           </div>
-          <span className="text-xs font-bold text-emerald-400">
+          <span className="font-bold text-emerald-400">
             R$ {cartao.saldoInvestimento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </span>
         </div>

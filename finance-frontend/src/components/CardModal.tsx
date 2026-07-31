@@ -18,11 +18,9 @@ function parseValorMonetario(valor: string | number): number {
   if (!valor) return 0;
 
   let str = String(valor).trim();
-  // Se contem ponto de milhar e virgula decimal (ex: 1.200,00 -> 1200.00)
   if (str.includes('.') && str.includes(',')) {
     str = str.replace(/\./g, '').replace(',', '.');
   } else if (str.includes(',')) {
-    // Se contem apenas virgula (ex: 447,96 -> 447.96)
     str = str.replace(',', '.');
   }
 
@@ -35,6 +33,7 @@ export function CardModal({ cartaoParaEditar, onClose, onSave }: ModalProps) {
   const [bandeira, setBandeira] = useState('Visa');
   const [limiteTotal, setLimiteTotal] = useState('');
   const [limiteUsado, setLimiteUsado] = useState('');
+  const [faturaMensal, setFaturaMensal] = useState('');
   const [diaFechamento, setDiaFechamento] = useState('');
   const [diaVencimento, setDiaVencimento] = useState('');
   const [saldoInvestimento, setSaldoInvestimento] = useState('');
@@ -47,6 +46,7 @@ export function CardModal({ cartaoParaEditar, onClose, onSave }: ModalProps) {
       setBandeira(cartaoParaEditar.bandeira || 'Visa');
       setLimiteTotal(String(cartaoParaEditar.limiteTotal));
       setLimiteUsado(String(cartaoParaEditar.limiteUsado));
+      setFaturaMensal(cartaoParaEditar.faturaMensal != null ? String(cartaoParaEditar.faturaMensal) : '');
       setDiaFechamento(String(cartaoParaEditar.diaFechamento));
       setDiaVencimento(String(cartaoParaEditar.diaVencimento));
       setSaldoInvestimento(cartaoParaEditar.saldoInvestimento ? String(cartaoParaEditar.saldoInvestimento) : '');
@@ -63,6 +63,7 @@ export function CardModal({ cartaoParaEditar, onClose, onSave }: ModalProps) {
       bandeira,
       limiteTotal: parseValorMonetario(limiteTotal),
       limiteUsado: parseValorMonetario(limiteUsado),
+      faturaMensal: parseValorMonetario(faturaMensal),
       diaFechamento: Number(diaFechamento) || 1,
       diaVencimento: Number(diaVencimento) || 10,
       saldoInvestimento: saldoInvestimento ? parseValorMonetario(saldoInvestimento) : undefined,
@@ -122,31 +123,49 @@ export function CardModal({ cartaoParaEditar, onClose, onSave }: ModalProps) {
             </label>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="block space-y-1">
-              <span className="text-slate-400 font-semibold">Limite Total (R$) *</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={limiteTotal}
-                onChange={(e) => setLimiteTotal(e.target.value)}
-                placeholder="Ex: 1200,00 ou 1200.00"
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-slate-100"
-                required
-              />
-            </label>
+          {/* Destaque para Fatura do Mês Atual vs Total Comprometido */}
+          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-3">
+            <span className="text-amber-400 font-bold block text-xs">💳 Valores Financeiros do Cartão:</span>
 
-            <label className="block space-y-1">
-              <span className="text-slate-400 font-semibold">Fatura / Limite Usado (R$)</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={limiteUsado}
-                onChange={(e) => setLimiteUsado(e.target.value)}
-                placeholder="Ex: 447,96 ou 447.96"
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-slate-100"
-              />
-            </label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <label className="block space-y-1">
+                <span className="text-slate-300 font-bold">Fatura a Pagar (Mês) *</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={faturaMensal}
+                  onChange={(e) => setFaturaMensal(e.target.value)}
+                  placeholder="Ex: 434,00"
+                  className="w-full rounded-xl bg-slate-950 border border-amber-500/50 p-2.5 text-amber-400 font-bold"
+                  required
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-slate-400 font-semibold">Total Comprometido</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={limiteUsado}
+                  onChange={(e) => setLimiteUsado(e.target.value)}
+                  placeholder="Ex: 1904,51 (Parcelados)"
+                  className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-slate-100"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-slate-400 font-semibold">Limite Total (R$) *</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={limiteTotal}
+                  onChange={(e) => setLimiteTotal(e.target.value)}
+                  placeholder="Ex: 8300,00"
+                  className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-slate-100"
+                  required
+                />
+              </label>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
