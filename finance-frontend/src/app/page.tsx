@@ -8,9 +8,17 @@ import { CreditCardCard } from '@/components/CreditCardCard';
 import { CardModal } from '@/components/CardModal';
 import { EditTransactionModal } from '@/components/EditTransactionModal';
 import { FiisDashboard } from '@/components/FiisDashboard';
-import { deleteTransacao, fetchBalanco, fetchTransacoes, loginUser, registerUser } from '@/lib/api';
+import {
+  deleteTransacao,
+  fetchBalanco,
+  fetchTransacoes,
+  loginUser,
+  registerUser,
+  solicitarCodigoRecuperacao,
+  redefinirSenhaComCodigo,
+} from '@/lib/api';
 import { Balanco, Transacao, CartaoCredito } from '@/lib/types';
-import { Lock, RefreshCw, UserRound, LayoutDashboard, TrendingUp, Plus, CreditCard as CardIcon } from 'lucide-react';
+import { Lock, RefreshCw, UserRound, LayoutDashboard, TrendingUp, Plus, CreditCard as CardIcon, Eye, EyeOff, KeyRound, Mail, ArrowLeft } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 
 const INITIAL_CARTOES: CartaoCredito[] = [
@@ -52,13 +60,18 @@ export default function DashboardPage() {
   const [editingTransaction, setEditingTransaction] = useState<Transacao | null>(null);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'esqueci' | 'codigo'>('login');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+
+  // Estados dos formulários de Auth e Recuperação
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [codigo, setCodigo] = useState('');
+  const [novaSenha, setNovaSenha] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Carrega cartões salvos no localStorage
   useEffect(() => {
     const savedCartoes = window.localStorage.getItem('finance_cartoes');
     if (savedCartoes) {
@@ -125,21 +138,34 @@ export default function DashboardPage() {
     event.preventDefault();
     setAuthLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
-      const data = authMode === 'login'
-        ? await loginUser(email, senha)
-        : await registerUser(nome, email, senha);
+      if (authMode === 'esqueci') {
+        const res = await solicitarCodigoRecuperacao(email);
+        setSuccessMessage(res.message);
+        setAuthMode('codigo');
+      } else if (authMode === 'codigo') {
+        const data = await redefinirSenhaComCodigo(email, codigo, novaSenha);
+        window.localStorage.setItem('finance_token', data.access_token);
+        setToken(data.access_token);
+        setSuccessMessage('Senha redefinida com sucesso!');
+        await loadData();
+      } else {
+        const data = authMode === 'login'
+          ? await loginUser(email, senha)
+          : await registerUser(nome, email, senha);
 
-      window.localStorage.setItem('finance_token', data.access_token);
-      setToken(data.access_token);
-      setAuthMode('login');
-      setNome('');
-      setEmail('');
-      setSenha('');
-      await loadData();
+        window.localStorage.setItem('finance_token', data.access_token);
+        setToken(data.access_token);
+        setAuthMode('login');
+        setNome('');
+        setEmail('');
+        setSenha('');
+        await loadData();
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao autenticar.');
+      setError(err instanceof Error ? err.message : 'Erro no processamento.');
     } finally {
       setAuthLoading(false);
     }
@@ -175,81 +201,174 @@ export default function DashboardPage() {
   if (!token) {
     return (
       <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
-        <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-2xl">
-          <div className="flex items-center gap-3 mb-6">
+        <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-2xl space-y-6">
+          <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-slate-800 p-3 text-cyan-300">
               <Lock className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Carteira Digital</h1>
-              <p className="text-sm text-slate-400">Acesso restrito com usuário e senha.</p>
+              <p className="text-sm text-slate-400">Acesso seguro com autenticação.</p>
             </div>
           </div>
 
-          <div className="flex gap-2 mb-5">
+          {/* Seleção de Modo: Login / Registro */}
+          {(authMode === 'login' || authMode === 'register') && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setAuthMode('login'); setError(null); setSuccessMessage(null); }}
+                className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${authMode === 'login' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
+              >
+                Entrar
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('register'); setError(null); setSuccessMessage(null); }}
+                className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${authMode === 'register' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
+              >
+                Registrar
+              </button>
+            </div>
+          )}
+
+          {/* Botão voltar para o login nas telas de recuperação */}
+          {(authMode === 'esqueci' || authMode === 'codigo') && (
             <button
-              type="button"
-              onClick={() => setAuthMode('login')}
-              className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold ${authMode === 'login' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-200'}`}
+              onClick={() => { setAuthMode('login'); setError(null); setSuccessMessage(null); }}
+              className="flex items-center gap-2 text-xs text-slate-400 hover:text-cyan-400 font-semibold"
             >
-              Entrar
+              <ArrowLeft className="w-4 h-4" /> Voltar para o Login
             </button>
-            <button
-              type="button"
-              onClick={() => setAuthMode('register')}
-              className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold ${authMode === 'register' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-200'}`}
-            >
-              Registrar
-            </button>
-          </div>
+          )}
 
           <form onSubmit={handleAuthSubmit} className="space-y-4">
             {authMode === 'register' && (
               <label className="block">
-                <span className="text-sm text-slate-300 mb-1 block">Nome</span>
+                <span className="text-sm text-slate-300 mb-1 block font-medium">Nome Completo</span>
                 <input
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full rounded-xl bg-slate-800 border border-slate-700 px-3 py-2 text-white"
+                  className="w-full rounded-xl bg-slate-800 border border-slate-700 px-3.5 py-2.5 text-white placeholder-slate-500"
                   placeholder="Seu nome"
                   required
                 />
               </label>
             )}
 
-            <label className="block">
-              <span className="text-sm text-slate-300 mb-1 block">E-mail</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl bg-slate-800 border border-slate-700 px-3 py-2 text-white"
-                placeholder="seu@email.com"
-                required
-              />
-            </label>
+            {(authMode === 'login' || authMode === 'register' || authMode === 'esqueci' || authMode === 'codigo') && (
+              <label className="block">
+                <span className="text-sm text-slate-300 mb-1 block font-medium">E-mail Cadastrado</span>
+                <div className="relative">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl bg-slate-800 border border-slate-700 px-3.5 py-2.5 text-white placeholder-slate-500 pr-10"
+                    placeholder="seu@email.com"
+                    required
+                    disabled={authMode === 'codigo'}
+                  />
+                  <Mail className="w-4 h-4 text-slate-500 absolute right-3.5 top-3.5" />
+                </div>
+              </label>
+            )}
 
-            <label className="block">
-              <span className="text-sm text-slate-300 mb-1 block">Senha</span>
-              <input
-                type="password"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                className="w-full rounded-xl bg-slate-800 border border-slate-700 px-3 py-2 text-white"
-                placeholder="Digite sua senha"
-                required
-                minLength={6}
-              />
-            </label>
+            {(authMode === 'login' || authMode === 'register') && (
+              <label className="block">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm text-slate-300 font-medium">Senha</span>
+                  {authMode === 'login' && (
+                    <button
+                      type="button"
+                      onClick={() => { setAuthMode('esqueci'); setError(null); setSuccessMessage(null); }}
+                      className="text-xs text-cyan-400 hover:underline"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type={mostrarSenha ? 'text' : 'password'}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    className="w-full rounded-xl bg-slate-800 border border-slate-700 px-3.5 py-2.5 text-white placeholder-slate-500 pr-10"
+                    placeholder="Digite sua senha"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarSenha(!mostrarSenha)}
+                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white"
+                  >
+                    {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </label>
+            )}
 
-            {error && <p className="text-sm text-rose-300">{error}</p>}
+            {/* Tela de Inserir Código de 6 Dígitos e Nova Senha */}
+            {authMode === 'codigo' && (
+              <>
+                <label className="block">
+                  <span className="text-sm text-slate-300 mb-1 block font-medium">Código de 6 Dígitos (Recebido por E-mail)</span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={codigo}
+                      onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))}
+                      className="w-full rounded-xl bg-slate-800 border border-slate-700 px-3.5 py-2.5 text-amber-400 font-black tracking-widest text-center text-lg"
+                      placeholder="123456"
+                      required
+                    />
+                    <KeyRound className="w-4 h-4 text-slate-500 absolute right-3.5 top-3.5" />
+                  </div>
+                </label>
+
+                <label className="block">
+                  <span className="text-sm text-slate-300 mb-1 block font-medium">Nova Senha</span>
+                  <div className="relative">
+                    <input
+                      type={mostrarSenha ? 'text' : 'password'}
+                      value={novaSenha}
+                      onChange={(e) => setNovaSenha(e.target.value)}
+                      className="w-full rounded-xl bg-slate-800 border border-slate-700 px-3.5 py-2.5 text-white placeholder-slate-500 pr-10"
+                      placeholder="Digite a nova senha"
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMostrarSenha(!mostrarSenha)}
+                      className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white"
+                    >
+                      {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </label>
+              </>
+            )}
+
+            {error && <p className="text-xs font-semibold text-rose-400 bg-rose-950/50 p-2.5 rounded-xl border border-rose-800">{error}</p>}
+            {successMessage && <p className="text-xs font-semibold text-emerald-400 bg-emerald-950/50 p-2.5 rounded-xl border border-emerald-800">{successMessage}</p>}
 
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full rounded-xl bg-cyan-500 text-slate-950 font-semibold py-2.5 disabled:opacity-70"
+              className="w-full rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-2.5 transition-all disabled:opacity-70"
             >
-              {authLoading ? 'Autenticando...' : authMode === 'login' ? 'Entrar' : 'Criar conta'}
+              {authLoading
+                ? 'Processando...'
+                : authMode === 'login'
+                ? 'Entrar'
+                : authMode === 'register'
+                ? 'Criar conta'
+                : authMode === 'esqueci'
+                ? 'Enviar Código por E-mail 📧'
+                : 'Redefinir Senha & Entrar'}
             </button>
           </form>
         </div>
@@ -257,7 +376,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Usa exatamente os valores cadastrados/editados nos cartões pelo usuário
   const cartoesComFatura = cartoes;
 
   return (

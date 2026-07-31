@@ -34,7 +34,7 @@ export async function loginUser(email: string, senha: string): Promise<{ access_
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.detail || 'Credenciais inválidas.');
+    throw new Error(data.detail || 'Credenciais inválidas. Verifique seu e-mail e senha.');
   }
   return res.json();
 }
@@ -49,6 +49,34 @@ export async function registerUser(nome: string, email: string, senha: string): 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.detail || 'Não foi possível registrar o usuário.');
+  }
+  return res.json();
+}
+
+export async function solicitarCodigoRecuperacao(email: string): Promise<{ message: string }> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/auth/esqueci-senha`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Erro ao enviar código de verificação.');
+  }
+  return res.json();
+}
+
+export async function redefinirSenhaComCodigo(email: string, codigo: string, nova_senha: string): Promise<{ access_token: string; token_type: string }> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/auth/redefinir-senha`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ email, codigo, nova_senha }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Código de verificação inválido ou expirado.');
   }
   return res.json();
 }
@@ -108,5 +136,5 @@ export async function deleteTransacao(id: number): Promise<void> {
     method: 'DELETE',
     headers: buildHeaders(),
   });
-  if (!res.ok) throw new Error('Erro ao deletar transação.');
+  if (!res.ok) throw new Error('Erro ao apagar transação.');
 }
