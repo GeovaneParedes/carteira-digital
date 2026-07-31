@@ -411,7 +411,7 @@ export default function DashboardPage() {
     );
   }
 
-  const cartoesComFatura = cartoes;
+  const cartoesComFatura = [...cartoes].sort((a, b) => a.diaFechamento - b.diaFechamento);
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10 font-sans">

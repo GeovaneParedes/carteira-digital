@@ -16,7 +16,7 @@ class CartaoRepository:
         return (
             self.db.query(CartaoCreditoModel)
             .filter(CartaoCreditoModel.usuario_id == self.usuario_id)
-            .order_by(CartaoCreditoModel.id.asc())
+            .order_by(CartaoCreditoModel.dia_fechamento.asc(), CartaoCreditoModel.id.asc())
             .all()
         )
 
