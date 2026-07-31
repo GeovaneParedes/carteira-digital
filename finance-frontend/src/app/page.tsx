@@ -6,14 +6,16 @@ import { TransactionForm } from '@/components/TransactionForm';
 import { TransactionList } from '@/components/TransactionList';
 import { CreditCardCard } from '@/components/CreditCardCard';
 import { EditTransactionModal } from '@/components/EditTransactionModal';
+import { FiisDashboard } from '@/components/FiisDashboard';
 import { deleteTransacao, fetchBalanco, fetchTransacoes, loginUser, registerUser } from '@/lib/api';
 import { Balanco, Transacao } from '@/lib/types';
-import { Lock, RefreshCw, UserRound } from 'lucide-react';
+import { Lock, RefreshCw, UserRound, LayoutDashboard, TrendingUp } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'geral' | 'fiis'>('geral');
   const [balanco, setBalanco] = useState<Balanco | null>(null);
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [editingTransaction, setEditingTransaction] = useState<Transacao | null>(null);
@@ -193,25 +195,47 @@ export default function DashboardPage() {
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-6">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-white">
-              Painel Financeiro
+              Carteira Digital
             </h1>
             <p className="text-sm text-slate-400 mt-1">
-              Gerencie suas contas, fatura de cartão e balanço geral.
+              Gerencie suas contas, balanço e cotações de FIIs em tempo real.
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Navegação entre Abas */}
+            <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
+              <button
+                onClick={() => setActiveTab('geral')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  activeTab === 'geral' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                Visão Geral
+              </button>
+              <button
+                onClick={() => setActiveTab('fiis')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  activeTab === 'fiis' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                Análise FIIs
+              </button>
+            </div>
+
             <button
               onClick={loadData}
-              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-3.5 py-2 rounded-xl text-xs font-medium transition"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Atualizar
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </button>
+
             <button
               onClick={logout}
-              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-3.5 py-2 rounded-xl text-xs font-medium transition"
             >
-              <UserRound className="w-4 h-4" />
+              <UserRound className="w-3.5 h-3.5" />
               Sair
             </button>
           </div>
@@ -219,45 +243,52 @@ export default function DashboardPage() {
 
         {error && <p className="text-sm text-rose-300">{error}</p>}
 
-        <BalanceCards balanco={balanco} />
+        {/* Conteúdo Dinâmico por Aba */}
+        {activeTab === 'geral' ? (
+          <>
+            <BalanceCards balanco={balanco} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CreditCardCard
-            nome="Cartão Nubank"
-            limiteTotal={3000}
-            limiteUsado={Number(balanco?.total_gastos || 0)}
-            diaFechamento={5}
-            diaVencimento={12}
-          />
-          <CreditCardCard
-            nome="Cartão Itaú"
-            limiteTotal={8000}
-            limiteUsado={0}
-            diaFechamento={20}
-            diaVencimento={27}
-          />
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CreditCardCard
+                nome="Cartão Nubank"
+                limiteTotal={3000}
+                limiteUsado={Number(balanco?.total_gastos || 0)}
+                diaFechamento={5}
+                diaVencimento={12}
+              />
+              <CreditCardCard
+                nome="Cartão Itaú"
+                limiteTotal={8000}
+                limiteUsado={0}
+                diaFechamento={20}
+                diaVencimento={27}
+              />
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TransactionForm
-            onSuccess={() => {
-              setEditingTransaction(null);
-              loadData();
-            }}
-          />
-          <FinanceChart balanco={balanco} />
-        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <TransactionForm
+                onSuccess={() => {
+                  setEditingTransaction(null);
+                  loadData();
+                }}
+              />
+              <FinanceChart balanco={balanco} />
+            </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-          <h2 className="text-lg font-semibold text-slate-100 mb-4">
-            Últimos Lançamentos
-          </h2>
-          <TransactionList
-            transacoes={transacoes}
-            onEdit={(t) => setEditingTransaction(t)}
-            onDelete={handleDelete}
-          />
-        </div>
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+              <h2 className="text-lg font-semibold text-slate-100 mb-4">
+                Últimos Lançamentos
+              </h2>
+              <TransactionList
+                transacoes={transacoes}
+                onEdit={(t) => setEditingTransaction(t)}
+                onDelete={handleDelete}
+              />
+            </div>
+          </>
+        ) : (
+          <FiisDashboard />
+        )}
       </div>
 
       {editingTransaction && (
