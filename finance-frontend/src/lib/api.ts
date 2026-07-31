@@ -94,14 +94,14 @@ export async function fetchCartoes(): Promise<CartaoCredito[]> {
     id: String(c.id),
     nome: String(c.nome),
     bandeira: c.bandeira ? String(c.bandeira) : undefined,
-    limiteTotal: Number(c.limiteTotal || 0),
-    limiteUsado: Number(c.limiteUsado || 0),
-    faturaMensal: Number(c.faturaMensal || 0),
-    diaFechamento: Number(c.diaFechamento || 1),
-    diaVencimento: Number(c.diaVencimento || 10),
-    saldoInvestimento: c.saldoInvestimento ? Number(c.saldoInvestimento) : undefined,
+    limiteTotal: Number(c.limite_total || c.limiteTotal || 0),
+    limiteUsado: Number(c.limite_usado || c.limiteUsado || 0),
+    faturaMensal: Number(c.fatura_mensal || c.faturaMensal || 0),
+    diaFechamento: Number(c.dia_fechamento || c.diaFechamento || 1),
+    diaVencimento: Number(c.dia_vencimento || c.diaVencimento || 10),
+    saldoInvestimento: (c.saldo_investimento || c.saldoInvestimento) ? Number(c.saldo_investimento || c.saldoInvestimento) : undefined,
     detalhes: c.detalhes ? String(c.detalhes) : undefined,
-    corHex: c.corHex ? String(c.corHex) : '#06b6d4',
+    corHex: String(c.cor_hex || c.corHex || '#06b6d4'),
   }));
 }
 
@@ -116,16 +116,16 @@ export async function createCartao(data: Omit<CartaoCredito, 'id'>): Promise<Car
   const c = await res.json();
   return {
     id: String(c.id),
-    nome: c.nome,
-    bandeira: c.bandeira,
-    limiteTotal: Number(c.limiteTotal),
-    limiteUsado: Number(c.limiteUsado),
-    faturaMensal: Number(c.faturaMensal),
-    diaFechamento: Number(c.diaFechamento),
-    diaVencimento: Number(c.diaVencimento),
-    saldoInvestimento: c.saldoInvestimento ? Number(c.saldoInvestimento) : undefined,
-    detalhes: c.detalhes || undefined,
-    corHex: c.corHex || '#06b6d4',
+    nome: String(c.nome),
+    bandeira: c.bandeira ? String(c.bandeira) : undefined,
+    limiteTotal: Number(c.limite_total || c.limiteTotal || 0),
+    limiteUsado: Number(c.limite_usado || c.limiteUsado || 0),
+    faturaMensal: Number(c.fatura_mensal || c.faturaMensal || 0),
+    diaFechamento: Number(c.dia_fechamento || c.diaFechamento || 1),
+    diaVencimento: Number(c.dia_vencimento || c.diaVencimento || 10),
+    saldoInvestimento: (c.saldo_investimento || c.saldoInvestimento) ? Number(c.saldo_investimento || c.saldoInvestimento) : undefined,
+    detalhes: c.detalhes ? String(c.detalhes) : undefined,
+    corHex: String(c.cor_hex || c.corHex || '#06b6d4'),
   };
 }
 
@@ -140,16 +140,16 @@ export async function updateCartao(id: string, data: Omit<CartaoCredito, 'id'>):
   const c = await res.json();
   return {
     id: String(c.id),
-    nome: c.nome,
-    bandeira: c.bandeira,
-    limiteTotal: Number(c.limiteTotal),
-    limiteUsado: Number(c.limiteUsado),
-    faturaMensal: Number(c.faturaMensal),
-    diaFechamento: Number(c.diaFechamento),
-    diaVencimento: Number(c.diaVencimento),
-    saldoInvestimento: c.saldoInvestimento ? Number(c.saldoInvestimento) : undefined,
-    detalhes: c.detalhes || undefined,
-    corHex: c.corHex || '#06b6d4',
+    nome: String(c.nome),
+    bandeira: c.bandeira ? String(c.bandeira) : undefined,
+    limiteTotal: Number(c.limite_total || c.limiteTotal || 0),
+    limiteUsado: Number(c.limite_usado || c.limiteUsado || 0),
+    faturaMensal: Number(c.fatura_mensal || c.faturaMensal || 0),
+    diaFechamento: Number(c.dia_fechamento || c.diaFechamento || 1),
+    diaVencimento: Number(c.dia_vencimento || c.diaVencimento || 10),
+    saldoInvestimento: (c.saldo_investimento || c.saldoInvestimento) ? Number(c.saldo_investimento || c.saldoInvestimento) : undefined,
+    detalhes: c.detalhes ? String(c.detalhes) : undefined,
+    corHex: String(c.cor_hex || c.corHex || '#06b6d4'),
   };
 }
 

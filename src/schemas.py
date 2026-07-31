@@ -61,7 +61,7 @@ class CartaoCreditoCreate(BaseModel):
 class CartaoCreditoResponse(BaseModel):
     """DTO de resposta para cartão de crédito."""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: int
     nome: str
