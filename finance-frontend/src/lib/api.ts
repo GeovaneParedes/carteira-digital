@@ -1,7 +1,6 @@
-import { Balanco, Transacao } from './types';
+import { Balanco, Transacao, CartaoCredito } from './types';
 
 function getApiBaseUrl(): string {
-  // Se estiver rodando no navegador do usuário, usa sempre o hostname dinâmico da página atual
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     return `http://${hostname}:8010`;
@@ -81,6 +80,89 @@ export async function redefinirSenhaComCodigo(email: string, codigo: string, nov
   }
   return res.json();
 }
+
+// --- INTEGRAÇÃO PERMANENTE DE CARTÕES NO BANCO DE DADOS ---
+
+export async function fetchCartoes(): Promise<CartaoCredito[]> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/cartoes`, {
+    headers: buildHeaders(),
+  });
+  if (!res.ok) throw new Error('Falha ao carregar cartões de crédito.');
+  const data = await res.json();
+  return data.map((c: Record<string, unknown>) => ({
+    id: String(c.id),
+    nome: String(c.nome),
+    bandeira: c.bandeira ? String(c.bandeira) : undefined,
+    limiteTotal: Number(c.limiteTotal || 0),
+    limiteUsado: Number(c.limiteUsado || 0),
+    faturaMensal: Number(c.faturaMensal || 0),
+    diaFechamento: Number(c.diaFechamento || 1),
+    diaVencimento: Number(c.diaVencimento || 10),
+    saldoInvestimento: c.saldoInvestimento ? Number(c.saldoInvestimento) : undefined,
+    detalhes: c.detalhes ? String(c.detalhes) : undefined,
+    corHex: c.corHex ? String(c.corHex) : '#06b6d4',
+  }));
+}
+
+export async function createCartao(data: Omit<CartaoCredito, 'id'>): Promise<CartaoCredito> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/cartoes`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Erro ao cadastrar cartão.');
+  const c = await res.json();
+  return {
+    id: String(c.id),
+    nome: c.nome,
+    bandeira: c.bandeira,
+    limiteTotal: Number(c.limiteTotal),
+    limiteUsado: Number(c.limiteUsado),
+    faturaMensal: Number(c.faturaMensal),
+    diaFechamento: Number(c.diaFechamento),
+    diaVencimento: Number(c.diaVencimento),
+    saldoInvestimento: c.saldoInvestimento ? Number(c.saldoInvestimento) : undefined,
+    detalhes: c.detalhes || undefined,
+    corHex: c.corHex || '#06b6d4',
+  };
+}
+
+export async function updateCartao(id: string, data: Omit<CartaoCredito, 'id'>): Promise<CartaoCredito> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/cartoes/${id}`, {
+    method: 'PUT',
+    headers: buildHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Erro ao atualizar cartão.');
+  const c = await res.json();
+  return {
+    id: String(c.id),
+    nome: c.nome,
+    bandeira: c.bandeira,
+    limiteTotal: Number(c.limiteTotal),
+    limiteUsado: Number(c.limiteUsado),
+    faturaMensal: Number(c.faturaMensal),
+    diaFechamento: Number(c.diaFechamento),
+    diaVencimento: Number(c.diaVencimento),
+    saldoInvestimento: c.saldoInvestimento ? Number(c.saldoInvestimento) : undefined,
+    detalhes: c.detalhes || undefined,
+    corHex: c.corHex || '#06b6d4',
+  };
+}
+
+export async function deleteCartao(id: string): Promise<void> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/cartoes/${id}`, {
+    method: 'DELETE',
+    headers: buildHeaders(),
+  });
+  if (!res.ok) throw new Error('Erro ao excluir cartão.');
+}
+
+// --- TRANSAÇÕES ---
 
 export async function fetchBalanco(): Promise<Balanco> {
   const baseUrl = getApiBaseUrl();

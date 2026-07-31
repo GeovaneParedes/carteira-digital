@@ -43,6 +43,39 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class CartaoCreditoCreate(BaseModel):
+    """DTO para criação e atualização de cartão de crédito."""
+
+    nome: str = Field(..., min_length=1, max_length=100)
+    bandeira: str | None = "Visa"
+    limiteTotal: Decimal = Field(..., ge=0)
+    limiteUsado: Decimal = Field(default=Decimal("0.00"), ge=0)
+    faturaMensal: Decimal = Field(default=Decimal("0.00"), ge=0)
+    diaFechamento: int = Field(..., ge=1, le=31)
+    diaVencimento: int = Field(..., ge=1, le=31)
+    saldoInvestimento: Decimal | None = None
+    detalhes: str | None = None
+    corHex: str | None = "#06b6d4"
+
+
+class CartaoCreditoResponse(BaseModel):
+    """DTO de resposta para cartão de crédito."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    nome: str
+    bandeira: str | None = None
+    limiteTotal: Decimal = Field(..., alias="limite_total")
+    limiteUsado: Decimal = Field(..., alias="limite_usado")
+    faturaMensal: Decimal = Field(..., alias="fatura_mensal")
+    diaFechamento: int = Field(..., alias="dia_fechamento")
+    diaVencimento: int = Field(..., alias="dia_vencimento")
+    saldoInvestimento: Decimal | None = Field(None, alias="saldo_investimento")
+    detalhes: str | None = None
+    corHex: str | None = Field("#06b6d4", alias="cor_hex")
+
+
 class TransacaoCreate(BaseModel):
     """DTO para criação de transação."""
 

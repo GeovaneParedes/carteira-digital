@@ -47,7 +47,7 @@ class UsuarioModel(Base):
 
 
 class CartaoCreditoModel(Base):
-    """Entidade para gestão de limites e datas de corte do cartão."""
+    """Entidade para gestão de limites, fatura mensal e datas de corte do cartão."""
     __tablename__ = "cartoes_credito"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -56,6 +56,7 @@ class CartaoCreditoModel(Base):
     bandeira = Column(String(50), nullable=True)
     limite_total = Column(Numeric(12, 2), nullable=False)
     limite_usado = Column(Numeric(12, 2), default=0.00)
+    fatura_mensal = Column(Numeric(12, 2), default=0.00)
     dia_fechamento = Column(Integer, nullable=False)
     dia_vencimento = Column(Integer, nullable=False)
     saldo_investimento = Column(Numeric(12, 2), nullable=True)

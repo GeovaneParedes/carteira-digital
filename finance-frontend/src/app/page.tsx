@@ -8,16 +8,8 @@ import { CreditCardCard } from '@/components/CreditCardCard';
 import { CardModal } from '@/components/CardModal';
 import { EditTransactionModal } from '@/components/EditTransactionModal';
 import { FiisDashboard } from '@/components/FiisDashboard';
-import {
-  deleteTransacao,
-  fetchBalanco,
-  fetchTransacoes,
-  loginUser,
-  registerUser,
-  solicitarCodigoRecuperacao,
-  redefinirSenhaComCodigo,
-} from '@/lib/api';
 import { Balanco, Transacao, CartaoCredito } from '@/lib/types';
+import { fetchBalanco, fetchTransacoes, deleteTransacao, loginUser, registerUser, solicitarCodigoRecuperacao, redefinirSenhaComCodigo, fetchCartoes, createCartao, updateCartao, deleteCartao } from '@/lib/api';
 import { Lock, RefreshCw, UserRound, LayoutDashboard, TrendingUp, Plus, CreditCard as CardIcon, Eye, EyeOff, KeyRound, Mail, ArrowLeft } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 
@@ -122,48 +114,41 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    const savedCartoes = window.localStorage.getItem('finance_cartoes');
-    if (savedCartoes) {
-      try {
-        setCartoes(JSON.parse(savedCartoes));
-      } catch (e) {
-        console.error('Erro ao ler cartões salvos', e);
+
+
+  async function handleSaveCard(cardData: Omit<CartaoCredito, 'id'> & { id?: string }) {
+    try {
+      if (cardData.id) {
+        await updateCartao(cardData.id, cardData);
+      } else {
+        await createCartao(cardData);
       }
-    }
-  }, []);
-
-  function saveCartoesToStorage(novosCartoes: CartaoCredito[]) {
-    setCartoes(novosCartoes);
-    window.localStorage.setItem('finance_cartoes', JSON.stringify(novosCartoes));
-  }
-
-  function handleSaveCard(cardData: Omit<CartaoCredito, 'id'> & { id?: string }) {
-    if (cardData.id) {
-      const atualizados = cartoes.map((c) => (c.id === cardData.id ? ({ ...c, ...cardData } as CartaoCredito) : c));
-      saveCartoesToStorage(atualizados);
-    } else {
-      const novoCartao: CartaoCredito = {
-        ...cardData,
-        id: String(Date.now()),
-      };
-      saveCartoesToStorage([...cartoes, novoCartao]);
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar cartão de crédito.');
     }
   }
 
-  function handleDeleteCard(id: string) {
+  async function handleDeleteCard(id: string) {
     if (confirm('Deseja realmente remover este cartão de crédito?')) {
-      const filtrados = cartoes.filter((c) => c.id !== id);
-      saveCartoesToStorage(filtrados);
+      try {
+        await deleteCartao(id);
+        await loadData();
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao apagar cartão de crédito.');
+      }
     }
   }
 
   async function loadData() {
     setLoading(true);
     try {
-      const [b, t] = await Promise.all([fetchBalanco(), fetchTransacoes()]);
+      const [b, t, c] = await Promise.all([fetchBalanco(), fetchTransacoes(), fetchCartoes()]);
       setBalanco(b);
       setTransacoes(t);
+      setCartoes(c);
     } catch (err) {
       console.error(err);
       setError('Não foi possível carregar os dados. Verifique o login e a API.');
