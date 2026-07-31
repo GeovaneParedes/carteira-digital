@@ -25,3 +25,16 @@ export interface Balanco {
   total_gastos: number;
   saldo_atual: number;
 }
+
+export interface CartaoCredito {
+  id: string;
+  nome: string;
+  bandeira?: string;
+  limiteTotal: number;
+  limiteUsado: number;
+  diaFechamento: number;
+  diaVencimento: number;
+  saldoInvestimento?: number;
+  detalhes?: string;
+  corHex?: string;
+}

@@ -5,12 +5,40 @@ import { FinanceChart } from '@/components/FinanceChart';
 import { TransactionForm } from '@/components/TransactionForm';
 import { TransactionList } from '@/components/TransactionList';
 import { CreditCardCard } from '@/components/CreditCardCard';
+import { CardModal } from '@/components/CardModal';
 import { EditTransactionModal } from '@/components/EditTransactionModal';
 import { FiisDashboard } from '@/components/FiisDashboard';
 import { deleteTransacao, fetchBalanco, fetchTransacoes, loginUser, registerUser } from '@/lib/api';
-import { Balanco, Transacao } from '@/lib/types';
-import { Lock, RefreshCw, UserRound, LayoutDashboard, TrendingUp } from 'lucide-react';
+import { Balanco, Transacao, CartaoCredito } from '@/lib/types';
+import { Lock, RefreshCw, UserRound, LayoutDashboard, TrendingUp, Plus, CreditCard as CardIcon } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
+
+const INITIAL_CARTOES: CartaoCredito[] = [
+  {
+    id: '1',
+    nome: 'Cartão Nubank',
+    bandeira: 'Mastercard',
+    limiteTotal: 3000,
+    limiteUsado: 0,
+    diaFechamento: 5,
+    diaVencimento: 12,
+    saldoInvestimento: 1500,
+    detalhes: 'Cartão principal para uso diário e cashback',
+    corHex: '#8b5cf6',
+  },
+  {
+    id: '2',
+    nome: 'Cartão Itaú',
+    bandeira: 'Visa',
+    limiteTotal: 8000,
+    limiteUsado: 0,
+    diaFechamento: 20,
+    diaVencimento: 27,
+    saldoInvestimento: 0,
+    detalhes: 'Cartão reserva para compras parceladas',
+    corHex: '#f97316',
+  },
+];
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
@@ -18,6 +46,9 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'geral' | 'fiis'>('geral');
   const [balanco, setBalanco] = useState<Balanco | null>(null);
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
+  const [cartoes, setCartoes] = useState<CartaoCredito[]>(INITIAL_CARTOES);
+  const [editingCard, setEditingCard] = useState<CartaoCredito | null>(null);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transacao | null>(null);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
@@ -26,6 +57,43 @@ export default function DashboardPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Carrega cartões salvos no localStorage
+  useEffect(() => {
+    const savedCartoes = window.localStorage.getItem('finance_cartoes');
+    if (savedCartoes) {
+      try {
+        setCartoes(JSON.parse(savedCartoes));
+      } catch (e) {
+        console.error('Erro ao ler cartões salvos', e);
+      }
+    }
+  }, []);
+
+  function saveCartoesToStorage(novosCartoes: CartaoCredito[]) {
+    setCartoes(novosCartoes);
+    window.localStorage.setItem('finance_cartoes', JSON.stringify(novosCartoes));
+  }
+
+  function handleSaveCard(cardData: Omit<CartaoCredito, 'id'> & { id?: string }) {
+    if (cardData.id) {
+      const atualizados = cartoes.map((c) => (c.id === cardData.id ? ({ ...c, ...cardData } as CartaoCredito) : c));
+      saveCartoesToStorage(atualizados);
+    } else {
+      const novoCartao: CartaoCredito = {
+        ...cardData,
+        id: String(Date.now()),
+      };
+      saveCartoesToStorage([...cartoes, novoCartao]);
+    }
+  }
+
+  function handleDeleteCard(id: string) {
+    if (confirm('Deseja realmente remover este cartão de crédito?')) {
+      const filtrados = cartoes.filter((c) => c.id !== id);
+      saveCartoesToStorage(filtrados);
+    }
+  }
 
   async function loadData() {
     setLoading(true);
@@ -189,6 +257,13 @@ export default function DashboardPage() {
     );
   }
 
+  // Atualiza limiteUsado dos cartões com base nas transações reais
+  const totalGastosReal = Number(balanco?.total_gastos || 0);
+  const cartoesComFatura = cartoes.map((c, i) => ({
+    ...c,
+    limiteUsado: i === 0 ? totalGastosReal : c.limiteUsado,
+  }));
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10 font-sans">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -198,7 +273,7 @@ export default function DashboardPage() {
               Carteira Digital
             </h1>
             <p className="text-sm text-slate-400 mt-1">
-              Gerencie suas contas, balanço e cotações de FIIs em tempo real.
+              Gerencie suas contas, cartões de crédito e investimento em tempo real.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -248,21 +323,42 @@ export default function DashboardPage() {
           <>
             <BalanceCards balanco={balanco} />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CreditCardCard
-                nome="Cartão Nubank"
-                limiteTotal={3000}
-                limiteUsado={Number(balanco?.total_gastos || 0)}
-                diaFechamento={5}
-                diaVencimento={12}
-              />
-              <CreditCardCard
-                nome="Cartão Itaú"
-                limiteTotal={8000}
-                limiteUsado={0}
-                diaFechamento={20}
-                diaVencimento={27}
-              />
+            {/* Gestão de Cartões de Crédito */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <CardIcon className="w-5 h-5 text-cyan-400" /> Cartões de Crédito
+                </h2>
+                <button
+                  onClick={() => {
+                    setEditingCard(null);
+                    setIsCardModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-xl transition-all"
+                >
+                  <Plus className="w-4 h-4" /> Adicionar Cartão
+                </button>
+              </div>
+
+              {cartoesComFatura.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {cartoesComFatura.map((cartao) => (
+                    <CreditCardCard
+                      key={cartao.id}
+                      cartao={cartao}
+                      onEdit={(c) => {
+                        setEditingCard(c);
+                        setIsCardModalOpen(true);
+                      }}
+                      onDelete={handleDeleteCard}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center text-slate-400 text-sm">
+                  Nenhum cartão cadastrado. Clique no botão acima para adicionar seu primeiro cartão!
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -290,6 +386,15 @@ export default function DashboardPage() {
           <FiisDashboard />
         )}
       </div>
+
+      {/* Modal de Adicionar/Editar Cartão */}
+      {isCardModalOpen && (
+        <CardModal
+          cartaoParaEditar={editingCard}
+          onClose={() => setIsCardModalOpen(false)}
+          onSave={handleSaveCard}
+        />
+      )}
 
       {editingTransaction && (
         <EditTransactionModal
