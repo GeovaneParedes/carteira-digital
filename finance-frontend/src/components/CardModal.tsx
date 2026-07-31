@@ -10,6 +10,26 @@ interface ModalProps {
   onSave: (cartao: Omit<CartaoCredito, 'id'> & { id?: string }) => void;
 }
 
+/**
+ * Sanitiza valores monetários digitados pelo usuário (ex: "1.200,00" -> 1200, "447,96" -> 447.96)
+ */
+function parseValorMonetario(valor: string | number): number {
+  if (typeof valor === 'number') return valor;
+  if (!valor) return 0;
+
+  let str = String(valor).trim();
+  // Se contem ponto de milhar e virgula decimal (ex: 1.200,00 -> 1200.00)
+  if (str.includes('.') && str.includes(',')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (str.includes(',')) {
+    // Se contem apenas virgula (ex: 447,96 -> 447.96)
+    str = str.replace(',', '.');
+  }
+
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 export function CardModal({ cartaoParaEditar, onClose, onSave }: ModalProps) {
   const [nome, setNome] = useState('');
   const [bandeira, setBandeira] = useState('Visa');
@@ -41,11 +61,11 @@ export function CardModal({ cartaoParaEditar, onClose, onSave }: ModalProps) {
       id: cartaoParaEditar?.id,
       nome,
       bandeira,
-      limiteTotal: Number(limiteTotal) || 0,
-      limiteUsado: Number(limiteUsado) || 0,
+      limiteTotal: parseValorMonetario(limiteTotal),
+      limiteUsado: parseValorMonetario(limiteUsado),
       diaFechamento: Number(diaFechamento) || 1,
       diaVencimento: Number(diaVencimento) || 10,
-      saldoInvestimento: saldoInvestimento ? Number(saldoInvestimento) : undefined,
+      saldoInvestimento: saldoInvestimento ? parseValorMonetario(saldoInvestimento) : undefined,
       detalhes: detalhes || undefined,
       corHex,
     });
@@ -106,11 +126,11 @@ export function CardModal({ cartaoParaEditar, onClose, onSave }: ModalProps) {
             <label className="block space-y-1">
               <span className="text-slate-400 font-semibold">Limite Total (R$) *</span>
               <input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={limiteTotal}
                 onChange={(e) => setLimiteTotal(e.target.value)}
-                placeholder="5000.00"
+                placeholder="Ex: 1200,00 ou 1200.00"
                 className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-slate-100"
                 required
               />
@@ -119,11 +139,11 @@ export function CardModal({ cartaoParaEditar, onClose, onSave }: ModalProps) {
             <label className="block space-y-1">
               <span className="text-slate-400 font-semibold">Fatura / Limite Usado (R$)</span>
               <input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={limiteUsado}
                 onChange={(e) => setLimiteUsado(e.target.value)}
-                placeholder="0.00"
+                placeholder="Ex: 447,96 ou 447.96"
                 className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-slate-100"
               />
             </label>
@@ -163,11 +183,11 @@ export function CardModal({ cartaoParaEditar, onClose, onSave }: ModalProps) {
             <label className="block space-y-1">
               <span className="text-slate-400 font-semibold">Saldo em Investimento Financeiro (R$)</span>
               <input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={saldoInvestimento}
                 onChange={(e) => setSaldoInvestimento(e.target.value)}
-                placeholder="Ex: 2500.00 (CDB Limite Crédito)"
+                placeholder="Ex: 2500,00 ou 2500.00"
                 className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-slate-100"
               />
             </label>

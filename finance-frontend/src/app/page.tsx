@@ -257,12 +257,8 @@ export default function DashboardPage() {
     );
   }
 
-  // Atualiza limiteUsado dos cartões com base nas transações reais
-  const totalGastosReal = Number(balanco?.total_gastos || 0);
-  const cartoesComFatura = cartoes.map((c, i) => ({
-    ...c,
-    limiteUsado: i === 0 ? totalGastosReal : c.limiteUsado,
-  }));
+  // Usa exatamente os valores cadastrados/editados nos cartões pelo usuário
+  const cartoesComFatura = cartoes;
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10 font-sans">
