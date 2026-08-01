@@ -159,6 +159,10 @@ class TransacaoRepository:
 
     def criar(self, transacao_in: TransacaoCreate) -> TransacaoModel:
         dados = transacao_in.model_dump()
+        # Garante que data_transacao seja date puro (sem hora) para evitar
+        # erro de validação do Pydantic v2 na resposta (date_from_datetime_inexact)
+        if dados.get("data_transacao") and hasattr(dados["data_transacao"], "date"):
+            dados["data_transacao"] = dados["data_transacao"].date()
         transacao = TransacaoModel(**dados, usuario_id=self.usuario_id)
         self.db.add(transacao)
         self.db.commit()
@@ -189,6 +193,9 @@ class TransacaoRepository:
             return None
 
         dados = transacao_in.model_dump(exclude_unset=True)
+        # Garante que data_transacao seja date puro (sem hora)
+        if "data_transacao" in dados and dados["data_transacao"] and hasattr(dados["data_transacao"], "date"):
+            dados["data_transacao"] = dados["data_transacao"].date()
         for campo, valor in dados.items():
             setattr(transacao, campo, valor)
 
