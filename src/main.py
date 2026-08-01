@@ -12,10 +12,12 @@ from src.auth import (
 )
 from src.database import Base, engine, get_db
 from src.email_service import enviar_email_codigo_recuperacao
-from src.models import UsuarioModel, CartaoCreditoModel
-from src.repository import TransacaoRepository, CartaoRepository
+from src.models import UsuarioModel
+from src.repository import CartaoRepository, TransacaoRepository
 from src.schemas import (
     BalancoResponse,
+    CartaoCreditoCreate,
+    CartaoCreditoResponse,
     EsqueciSenhaRequest,
     RedefinirSenhaRequest,
     TokenResponse,
@@ -24,8 +26,6 @@ from src.schemas import (
     TransacaoUpdate,
     UsuarioCreate,
     UsuarioLogin,
-    CartaoCreditoCreate,
-    CartaoCreditoResponse,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -97,8 +97,8 @@ def esqueci_senha(req: EsqueciSenhaRequest, db: Session = Depends(get_db)):
 
     try:
         enviar_email_codigo_recuperacao(usuario.email, codigo)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Falha ao enviar e-mail: {str(e)}")
+    except (OSError, RuntimeError) as e:
+        raise HTTPException(status_code=500, detail=f"Falha ao enviar e-mail: {e!s}")
 
     return {"message": "Código de recuperação enviado para o e-mail."}
 

@@ -1,7 +1,7 @@
+import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,6 @@ def enviar_email_codigo_recuperacao(destino_email: str, codigo: str) -> bool:
 
         logger.info(f"E-mail enviado com sucesso para {destino_email}")
         return True
-    except Exception as e:
+    except (smtplib.SMTPException, OSError) as e:
         logger.error(f"Erro ao enviar e-mail de recuperação: {e}")
         return False

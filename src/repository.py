@@ -1,8 +1,13 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.models import TipoTransacao, TransacaoModel, CartaoCreditoModel
-from src.schemas import BalancoResponse, TransacaoCreate, TransacaoUpdate, CartaoCreditoCreate
+from src.models import CartaoCreditoModel, TipoTransacao, TransacaoModel
+from src.schemas import (
+    BalancoResponse,
+    CartaoCreditoCreate,
+    TransacaoCreate,
+    TransacaoUpdate,
+)
 
 
 class CartaoRepository:
