@@ -38,6 +38,8 @@ class UsuarioModel(Base):
     nome = Column(String(100), nullable=False)
     email = Column(String(150), unique=True, nullable=False, index=True)
     senha_hash = Column(String(255), nullable=False)
+    codigo_recuperacao = Column(String(6), nullable=True)
+    codigo_expiracao = Column(DateTime, nullable=True)
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     cartoes = relationship("CartaoCreditoModel", back_populates="usuario", cascade="all, delete-orphan")
@@ -45,36 +47,40 @@ class UsuarioModel(Base):
 
 
 class CartaoCreditoModel(Base):
-    """Entidade para gestão de limites e datas de corte do cartão."""
+    """Entidade para gestão de limites, fatura mensal e datas de corte do cartão."""
     __tablename__ = "cartoes_credito"
 
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    nome = Column(String(50), nullable=False)
-    limite_total = Column(Numeric(10, 2), nullable=False)
+    nome = Column(String(100), nullable=False)
+    bandeira = Column(String(50), nullable=True)
+    limite_total = Column(Numeric(12, 2), nullable=False)
+    limite_usado = Column(Numeric(12, 2), default=0.00)
+    fatura_mensal = Column(Numeric(12, 2), default=0.00)
     dia_fechamento = Column(Integer, nullable=False)
     dia_vencimento = Column(Integer, nullable=False)
+    saldo_investimento = Column(Numeric(12, 2), nullable=True)
+    detalhes = Column(String(255), nullable=True)
+    cor_hex = Column(String(10), default="#06b6d4")
 
     usuario = relationship("UsuarioModel", back_populates="cartoes")
-    transacoes = relationship("TransacaoModel", back_populates="cartao")
 
 
 class TransacaoModel(Base):
-    """Entidade de movimentação financeira atualizada."""
+    """Entidade de Lançamento Financeiro."""
     __tablename__ = "transacoes"
 
     id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, default=1)
-    cartao_id = Column(Integer, ForeignKey("cartoes_credito.id"), nullable=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     descricao = Column(String(255), nullable=False)
-    valor = Column(Numeric(10, 2), nullable=False)
     tipo = Column(Enum(TipoTransacao), nullable=False)
-    categoria = Column(String(100), nullable=False, default="")
-    forma_pagamento = Column(Enum(FormaPagamento), nullable=False, default=FormaPagamento.PIX)
+    valor = Column(Numeric(12, 2), nullable=False)
+    categoria = Column(String(100), nullable=False)
+    forma_pagamento = Column(Enum(FormaPagamento), nullable=False)
     banco = Column(String(100), nullable=True)
-    data_transacao = Column(DateTime, default=datetime.utcnow)
+    data_transacao = Column(Date, nullable=False)
     data_vencimento = Column(Date, nullable=True)
-    pago = Column(Boolean, nullable=False, default=True)
+    pago = Column(Boolean, default=True)
+    criado_em = Column(DateTime, default=datetime.utcnow)
 
     usuario = relationship("UsuarioModel", back_populates="transacoes")
-    cartao = relationship("CartaoCreditoModel", back_populates="transacoes")

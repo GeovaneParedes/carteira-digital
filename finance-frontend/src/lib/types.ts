@@ -25,3 +25,17 @@ export interface Balanco {
   total_gastos: number;
   saldo_atual: number;
 }
+
+export interface CartaoCredito {
+  id: string;
+  nome: string;
+  bandeira?: string;
+  limiteTotal: number;
+  limiteUsado: number; // Montante Total Comprometido (Parcelados a vencer)
+  faturaMensal: number; // Fatura exata do Mês Atual
+  diaFechamento: number;
+  diaVencimento: number;
+  saldoInvestimento?: number;
+  detalhes?: string;
+  corHex?: string;
+}

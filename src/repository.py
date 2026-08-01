@@ -1,9 +1,158 @@
-
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.models import TipoTransacao, TransacaoModel
-from src.schemas import BalancoResponse, TransacaoCreate, TransacaoUpdate
+from src.models import CartaoCreditoModel, TipoTransacao, TransacaoModel
+from src.schemas import (
+    BalancoResponse,
+    CartaoCreditoCreate,
+    TransacaoCreate,
+    TransacaoUpdate,
+)
+
+
+class CartaoRepository:
+    """Camada de persistência para cartões de crédito em banco de dados isolados por usuário."""
+
+    def __init__(self, db_session: Session, usuario_id: int):
+        self.db = db_session
+        self.usuario_id = usuario_id
+
+    def listar_todos(self) -> list[CartaoCreditoModel]:
+        return (
+            self.db.query(CartaoCreditoModel)
+            .filter(CartaoCreditoModel.usuario_id == self.usuario_id)
+            .order_by(CartaoCreditoModel.dia_fechamento.asc(), CartaoCreditoModel.id.asc())
+            .all()
+        )
+
+    def obter_por_id(self, cartao_id: int) -> CartaoCreditoModel | None:
+        return (
+            self.db.query(CartaoCreditoModel)
+            .filter(
+                CartaoCreditoModel.id == cartao_id,
+                CartaoCreditoModel.usuario_id == self.usuario_id,
+            )
+            .first()
+        )
+
+    def criar(self, cartao_in: CartaoCreditoCreate) -> CartaoCreditoModel:
+        cartao = CartaoCreditoModel(
+            usuario_id=self.usuario_id,
+            nome=cartao_in.nome,
+            bandeira=cartao_in.bandeira,
+            limite_total=cartao_in.limiteTotal,
+            limite_usado=cartao_in.limiteUsado,
+            fatura_mensal=cartao_in.faturaMensal,
+            dia_fechamento=cartao_in.diaFechamento,
+            dia_vencimento=cartao_in.diaVencimento,
+            saldo_investimento=cartao_in.saldoInvestimento,
+            detalhes=cartao_in.detalhes,
+            cor_hex=cartao_in.corHex or "#06b6d4",
+        )
+        self.db.add(cartao)
+        self.db.commit()
+        self.db.refresh(cartao)
+        return cartao
+
+    def atualizar(self, cartao_id: int, cartao_in: CartaoCreditoCreate) -> CartaoCreditoModel | None:
+        cartao = self.obter_por_id(cartao_id)
+        if not cartao:
+            return None
+
+        cartao.nome = cartao_in.nome
+        cartao.bandeira = cartao_in.bandeira
+        cartao.limite_total = cartao_in.limiteTotal
+        cartao.limite_usado = cartao_in.limiteUsado
+        cartao.fatura_mensal = cartao_in.faturaMensal
+        cartao.dia_fechamento = cartao_in.diaFechamento
+        cartao.dia_vencimento = cartao_in.diaVencimento
+        cartao.saldo_investimento = cartao_in.saldoInvestimento
+        cartao.detalhes = cartao_in.detalhes
+        if cartao_in.corHex:
+            cartao.cor_hex = cartao_in.corHex
+
+        self.db.commit()
+        self.db.refresh(cartao)
+        return cartao
+
+    def deletar(self, cartao_id: int) -> bool:
+        cartao = self.obter_por_id(cartao_id)
+        if not cartao:
+            return False
+        self.db.delete(cartao)
+        self.db.commit()
+        return True
+
+    def inicializar_cartoes_padrao(self) -> list[CartaoCreditoModel]:
+        cartoes_iniciais = [
+            CartaoCreditoCreate(
+                nome="Cartão Nubank",
+                bandeira="Mastercard",
+                limiteTotal=1200,
+                limiteUsado=821.04,
+                faturaMensal=250.00,
+                diaFechamento=19,
+                diaVencimento=26,
+                saldoInvestimento=29.66,
+                detalhes="Cartão principal para uso diário e cashback",
+                corHex="#8b5cf6",
+            ),
+            CartaoCreditoCreate(
+                nome="Cartão Inter",
+                bandeira="Mastercard",
+                limiteTotal=8840,
+                limiteUsado=1673.55,
+                faturaMensal=450.00,
+                diaFechamento=19,
+                diaVencimento=25,
+                detalhes="Cartão reserva para compras parceladas",
+                corHex="#f97316",
+            ),
+            CartaoCreditoCreate(
+                nome="PicPay",
+                bandeira="Mastercard",
+                limiteTotal=4870,
+                limiteUsado=434.00,
+                faturaMensal=434.00,
+                diaFechamento=7,
+                diaVencimento=15,
+                corHex="#10b981",
+            ),
+            CartaoCreditoCreate(
+                nome="Next",
+                bandeira="Visa",
+                limiteTotal=770,
+                limiteUsado=128.33,
+                faturaMensal=128.33,
+                diaFechamento=14,
+                diaVencimento=25,
+                corHex="#06b6d4",
+            ),
+            CartaoCreditoCreate(
+                nome="Mercado Pago",
+                bandeira="Visa",
+                limiteTotal=8300,
+                limiteUsado=1904.51,
+                faturaMensal=380.00,
+                diaFechamento=9,
+                diaVencimento=15,
+                corHex="#3b82f6",
+            ),
+            CartaoCreditoCreate(
+                nome="Nubank Empresarial",
+                bandeira="Mastercard",
+                limiteTotal=5750,
+                limiteUsado=2579.85,
+                faturaMensal=520.00,
+                diaFechamento=19,
+                diaVencimento=26,
+                corHex="#a855f7",
+            ),
+        ]
+        criados = []
+        for c in cartoes_iniciais:
+            criados.append(self.criar(c))
+        return criados
 
 
 class TransacaoRepository:
@@ -15,6 +164,10 @@ class TransacaoRepository:
 
     def criar(self, transacao_in: TransacaoCreate) -> TransacaoModel:
         dados = transacao_in.model_dump()
+        # Garante que data_transacao seja date puro (sem hora) para evitar
+        # erro de validação do Pydantic v2 na resposta (date_from_datetime_inexact)
+        if dados.get("data_transacao") and hasattr(dados["data_transacao"], "date"):
+            dados["data_transacao"] = dados["data_transacao"].date()
         transacao = TransacaoModel(**dados, usuario_id=self.usuario_id)
         self.db.add(transacao)
         self.db.commit()
@@ -45,6 +198,9 @@ class TransacaoRepository:
             return None
 
         dados = transacao_in.model_dump(exclude_unset=True)
+        # Garante que data_transacao seja date puro (sem hora)
+        if "data_transacao" in dados and dados["data_transacao"] and hasattr(dados["data_transacao"], "date"):
+            dados["data_transacao"] = dados["data_transacao"].date()
         for campo, valor in dados.items():
             setattr(transacao, campo, valor)
 
