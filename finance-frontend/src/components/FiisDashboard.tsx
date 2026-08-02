@@ -63,9 +63,21 @@ export function FiisDashboard() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<string>('');
 
-  function carregarDados() {
+  async function carregarDados() {
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.100.9:8010';
+      const res = await fetch(`${baseUrl}/fiis`);
+      if (!res.ok) throw new Error('Falha ao buscar FIIs do backend');
+      const data: FII[] = await res.json();
+      
+      const top5 = data.slice(0, 5);
+      setFiis(top5);
+      setSelectedFii(top5[0] || null);
+      setLastUpdate(new Date().toLocaleTimeString('pt-BR'));
+    } catch (err) {
+      console.error('Erro ao carregar FIIs em tempo real:', err);
+      // Fallback para não zerar a tela em caso de falha de rede
       const calculados = FII_POOL.map((item) => ({
         ...item,
         score: calcularScore(item),
@@ -74,9 +86,10 @@ export function FiisDashboard() {
       const top5 = calculados.slice(0, 5);
       setFiis(top5);
       setSelectedFii(top5[0] || null);
-      setLastUpdate(new Date().toLocaleTimeString('pt-BR'));
+      setLastUpdate(new Date().toLocaleTimeString('pt-BR') + ' (offline)');
+    } finally {
       setLoading(false);
-    }, 400);
+    }
   }
 
   useEffect(() => {
