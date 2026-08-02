@@ -470,7 +470,7 @@ export default function DashboardPage() {
         {/* Conteúdo Dinâmico por Aba */}
         {activeTab === 'geral' ? (
           <>
-            <BalanceCards balanco={balanco} />
+            <BalanceCards balanco={balanco} cartoes={cartoesComFatura} />
 
             {/* Gestão de Cartões de Crédito */}
             <div className="space-y-4">
