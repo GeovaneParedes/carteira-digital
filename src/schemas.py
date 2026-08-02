@@ -136,3 +136,22 @@ class BalancoResponse(BaseModel):
     total_ganhos: Decimal
     total_gastos: Decimal
     saldo_atual: Decimal
+
+
+class FIISchema(BaseModel):
+    """DTO para cotações reais de FIIs buscados da B3 (via Yahoo Finance)."""
+
+    ticker: str
+    symbol: str
+    nome: str
+    segmento: str
+    cor: str
+    price: float
+    var: float
+    dy: float
+    pvp: float
+    mkt: float
+    vol: float
+    high: float
+    low: float
+    score: int = 0

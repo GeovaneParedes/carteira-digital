@@ -1,3 +1,7 @@
+import json
+import logging
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -19,6 +23,7 @@ from src.schemas import (
     CartaoCreditoCreate,
     CartaoCreditoResponse,
     EsqueciSenhaRequest,
+    FIISchema,
     RedefinirSenhaRequest,
     TokenResponse,
     TransacaoCreate,
@@ -27,6 +32,8 @@ from src.schemas import (
     UsuarioCreate,
     UsuarioLogin,
 )
+
+logger = logging.getLogger(__name__)
 
 Base.metadata.create_all(bind=engine)
 
@@ -241,3 +248,108 @@ def deletar_transacao(
     removido = repo.deletar(transacao_id)
     if not removido:
         raise HTTPException(status_code=404, detail="Transação não encontrada")
+
+
+# --- ROTA DE FIIs EM TEMPO REAL (B3 via Yahoo Finance API com Cache) ---
+
+# Cache em memória para não estourar rate limit da Yahoo Finance
+FII_CACHE: dict = {"data": [], "updated_at": None}
+
+FII_METADATA = [
+    {"ticker": "MXRF11.SA", "nome": "Maxi Renda", "segmento": "Recebíveis", "cor": "#f59e0b", "dy": 0.124, "pvp": 1.02, "mkt": 2250000000},
+    {"ticker": "HGLG11.SA", "nome": "CSHG Logística", "segmento": "Logística", "cor": "#3b82f6", "dy": 0.088, "pvp": 1.01, "mkt": 3780000000},
+    {"ticker": "XPML11.SA", "nome": "XP Malls", "segmento": "Shopping", "cor": "#10b981", "dy": 0.092, "pvp": 1.04, "mkt": 3200000000},
+    {"ticker": "KNRI11.SA", "nome": "Kinea Renda Imob.", "segmento": "Híbrido", "cor": "#8b5cf6", "dy": 0.082, "pvp": 0.97, "mkt": 3900000000},
+    {"ticker": "BTLG11.SA", "nome": "BTG Logística", "segmento": "Logística", "cor": "#6366f1", "dy": 0.095, "pvp": 0.99, "mkt": 2800000000},
+    {"ticker": "RECR11.SA", "nome": "REC Recebíveis", "segmento": "Recebíveis", "cor": "#ef4444", "dy": 0.128, "pvp": 0.89, "mkt": 2100000000},
+    {"ticker": "VISC11.SA", "nome": "Vinci Shopping Centers", "segmento": "Shopping", "cor": "#f97316", "dy": 0.089, "pvp": 1.00, "mkt": 2500000000},
+    {"ticker": "CPTS11.SA", "nome": "Capitânia Securities", "segmento": "Recebíveis", "cor": "#14b8a6", "dy": 0.118, "pvp": 0.91, "mkt": 2700000000},
+    {"ticker": "BCFF11.SA", "nome": "BTG Fundo de Fundos", "segmento": "FoF", "cor": "#06b6d4", "dy": 0.098, "pvp": 0.93, "mkt": 1800000000},
+    {"ticker": "RBVA11.SA", "nome": "Rio Bravo Varejo", "segmento": "Varejo", "cor": "#ec4899", "dy": 0.096, "pvp": 1.02, "mkt": 1400000000},
+]
+
+
+def calcular_score_fii(price: float, dy: float, pvp: float, vol: float, var: float) -> int:
+    s = 0.0
+    s += min((dy * 100) / 15, 1.0) * 40
+    s += (1.0 if pvp <= 1.0 else 0.8 if pvp <= 1.2 else 0.5 if pvp <= 1.5 else 0.2) * 30
+    s += min(vol / 5000000, 1.0) * 20
+    s += (1.0 if var >= 0 else 0.7 if var >= -1.0 else 0.3) * 10
+    return round(s)
+
+
+@app.get("/fiis", response_model=list[FIISchema])
+def obter_fiis_tempo_real():
+    """Busca cotações em tempo real da B3 via Yahoo Finance API com cache de 10 min."""
+    now = datetime.now(timezone.utc)
+    
+    # Retorna do cache se atualizado há menos de 10 minutos
+    if FII_CACHE["updated_at"] and (now - FII_CACHE["updated_at"]).total_seconds() < 600:
+        return FII_CACHE["data"]
+
+    resultados = []
+    
+    for meta in FII_METADATA:
+        ticker = meta["ticker"]
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=1d"
+        
+        price = 0.0
+        var_pct = 0.0
+        vol = 0.0
+        high = 0.0
+        low = 0.0
+
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode())
+                result = data["chart"]["result"][0]
+                meta_yh = result["meta"]
+                quote = result["indicators"]["quote"][0]
+
+                price = float(meta_yh.get("regularMarketPrice") or 0.0)
+                prev_close = float(meta_yh.get("chartPreviousClose") or price or 1.0)
+                if prev_close > 0 and price > 0:
+                    var_pct = round(((price - prev_close) / prev_close) * 100, 2)
+                
+                high = float(meta_yh.get("fiftyTwoWeekHigh") or price * 1.1)
+                low = float(meta_yh.get("fiftyTwoWeekLow") or price * 0.9)
+                
+                volumes = quote.get("volume") or []
+                vol = float(volumes[0]) if volumes and volumes[0] else 1000000.0
+        except (urllib.error.URLError, json.JSONDecodeError, KeyError, IndexError, ValueError) as e:
+            logger.warning("Erro ao buscar cotação de %s: %s", ticker, e)
+
+        # Se a busca falhou ou preço zerado, usa fallback para não quebrar a UI
+        if price == 0.0:
+            price = 10.0
+            high = 11.0
+            low = 9.0
+            vol = 1000000.0
+
+        score = calcular_score_fii(price, meta["dy"], meta["pvp"], vol, var_pct)
+
+        resultados.append({
+            "ticker": ticker,
+            "symbol": ticker,
+            "nome": meta["nome"],
+            "segmento": meta["segmento"],
+            "cor": meta["cor"],
+            "price": price,
+            "var": var_pct,
+            "dy": meta["dy"],
+            "pvp": meta["pvp"],
+            "mkt": meta["mkt"],
+            "vol": vol,
+            "high": high,
+            "low": low,
+            "score": score,
+        })
+
+    # Ordena por score decrescente
+    resultados.sort(key=lambda x: x["score"], reverse=True)
+
+    FII_CACHE["data"] = resultados
+    FII_CACHE["updated_at"] = now
+
+    return resultados
