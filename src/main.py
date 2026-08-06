@@ -145,10 +145,7 @@ def listar_cartoes(
 ):
     """Lista todos os cartões cadastrados pelo usuário autenticado no Banco PostgreSQL."""
     repo = CartaoRepository(db, usuario_id=usuario_atual.id)
-    cartoes = repo.listar_todos()
-    if not cartoes:
-        cartoes = repo.inicializar_cartoes_padrao()
-    return cartoes
+    return repo.listar_todos()
 
 
 @app.post("/cartoes", response_model=CartaoCreditoResponse, status_code=status.HTTP_201_CREATED)
