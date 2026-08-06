@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: carteira-secrets
+  labels:
+    app: carteira-digital
+type: Opaque
+stringData:
+  POSTGRES_USER: "finance_user"
+  POSTGRES_PASSWORD: "finance_password"
+  POSTGRES_DB: "finance_db"
+  DATABASE_URL: "postgresql://finance_user:finance_password@carteira-postgres:5432/finance_db"
+  SECRET_KEY: "carteira-digital-producao-secret-key-super-segura"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: carteira-configmap
+  labels:
+    app: carteira-digital
+data:
+  ACCESS_TOKEN_EXPIRE_MINUTES: "43200"
+  NEXT_PUBLIC_API_URL: "http://carteira-backend:8000"
