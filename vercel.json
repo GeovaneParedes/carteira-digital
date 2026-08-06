@@ -1,15 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "finance-frontend/package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "finance-frontend/$1"
-    }
-  ]
+  "buildCommand": "cd finance-frontend && npm run build",
+  "outputDirectory": "finance-frontend/.next",
+  "installCommand": "cd finance-frontend && npm install",
+  "framework": "nextjs"
 }
