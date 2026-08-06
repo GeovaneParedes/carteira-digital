@@ -2,12 +2,13 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, "feature/*", "ci/*" ]
   pull_request:
     branches: [ main ]
 
 jobs:
   backend-test:
+    name: Backend Lint & Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +31,7 @@ jobs:
         run: pytest tests/
 
   frontend-build:
+    name: Frontend Lint & Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -52,3 +54,19 @@ jobs:
 
       - name: Build Project
         run: npm run build
+
+  k8s-validate:
+    name: Validate Kubernetes Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubeconform
+        run: |
+          curl -sSLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-linux-amd64.tar.gz
+          tar xf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Validate Manifests
+        run: |
+          kubeconform -summary -ignore-filename-pattern README.md k8s/
