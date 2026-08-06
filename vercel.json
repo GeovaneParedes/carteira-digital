@@ -1,7 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "cd finance-frontend && npm run build",
-  "outputDirectory": "finance-frontend/.next",
-  "installCommand": "cd finance-frontend && npm install",
+  "outputDirectory": ".next",
   "framework": "nextjs"
 }
