@@ -9,7 +9,7 @@ import { CardModal } from '@/components/CardModal';
 import { EditTransactionModal } from '@/components/EditTransactionModal';
 import { FiisDashboard } from '@/components/FiisDashboard';
 import { Balanco, Transacao, CartaoCredito } from '@/lib/types';
-import { fetchBalanco, fetchTransacoes, deleteTransacao, loginUser, registerUser, solicitarCodigoRecuperacao, redefinirSenhaComCodigo, fetchCartoes, createCartao, updateCartao, deleteCartao } from '@/lib/api';
+import { fetchBalanco, fetchTransacoes, deleteTransacao, loginUser, registerUser, solicitarCodigoRecuperacao, redefinirSenhaComCodigo, fetchCartoes, createCartao, updateCartao, deleteCartao, updateTransacao, pagarFaturaCartao } from '@/lib/api';
 import { Lock, RefreshCw, UserRound, LayoutDashboard, TrendingUp, Plus, CreditCard as CardIcon, Eye, EyeOff, KeyRound, Mail, ArrowLeft } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 
@@ -38,6 +38,28 @@ export default function DashboardPage() {
   const [novaSenha, setNovaSenha] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  async function handleToggleStatus(t: Transacao) {
+    try {
+      await updateTransacao(t.id, { pago: !t.pago });
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao alterar status da transação.');
+    }
+  }
+
+  async function handlePagarFaturaCartao(cartaoId: string) {
+    if (confirm('Confirma a baixa no pagamento da fatura deste cartão?')) {
+      try {
+        await pagarFaturaCartao(cartaoId);
+        await loadData();
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao dar baixa na fatura.');
+      }
+    }
+  }
 
 
 
@@ -451,8 +473,11 @@ export default function DashboardPage() {
               </h2>
               <TransactionList
                 transacoes={transacoes}
+                cartoes={cartoesComFatura}
                 onEdit={(t) => setEditingTransaction(t)}
                 onDelete={handleDelete}
+                onToggleStatus={handleToggleStatus}
+                onPagarFaturaCartao={handlePagarFaturaCartao}
               />
             </div>
           </>

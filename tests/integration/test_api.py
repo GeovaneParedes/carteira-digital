@@ -198,3 +198,32 @@ def test_isolamento_multi_tenant_entre_usuarios(client, auth_headers):
     # 4. Usuário B tenta ver o balanço (deve ser 0)
     bal_b = client.get("/transacoes/balanco", headers=headers_b).json()
     assert float(bal_b["saldo_atual"]) == 0.00
+
+
+def test_pagar_fatura_cartao(client, auth_headers):
+    # Obtém cartões padrão criados no registro
+    cartoes = client.get("/cartoes", headers=auth_headers).json()
+    assert len(cartoes) > 0
+    cartao_id = cartoes[0]["id"]
+
+    # Atualiza cartão com fatura mensal
+    client.put(
+        f"/cartoes/{cartao_id}",
+        json={
+            "nome": "Cartão Teste",
+            "bandeira": "Mastercard",
+            "limiteTotal": 5000.00,
+            "limiteUsado": 1500.00,
+            "faturaMensal": 500.00,
+            "diaFechamento": 10,
+            "diaVencimento": 17,
+        },
+        headers=auth_headers,
+    )
+
+    # Dar baixa na fatura mensal
+    res_pagar = client.post(f"/cartoes/{cartao_id}/pagar", headers=auth_headers)
+    assert res_pagar.status_code == 200
+    data = res_pagar.json()
+    assert float(data.get("fatura_mensal", data.get("faturaMensal"))) == 0.00
+    assert float(data.get("limite_usado", data.get("limiteUsado"))) == 1000.00
