@@ -200,7 +200,7 @@ class TransacaoRepository:
             )
             .scalar()
         )
-        gastos = (
+        gastos_totais = (
             self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0))
             .filter(
                 TransacaoModel.usuario_id == self.usuario_id,
@@ -208,9 +208,29 @@ class TransacaoRepository:
             )
             .scalar()
         )
+        gastos_pendentes = (
+            self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0))
+            .filter(
+                TransacaoModel.usuario_id == self.usuario_id,
+                TransacaoModel.tipo == TipoTransacao.GASTO,
+                TransacaoModel.pago == False,
+            )
+            .scalar()
+        )
+        gastos_pagos = (
+            self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0))
+            .filter(
+                TransacaoModel.usuario_id == self.usuario_id,
+                TransacaoModel.tipo == TipoTransacao.GASTO,
+                TransacaoModel.pago == True,
+            )
+            .scalar()
+        )
 
         return BalancoResponse(
             total_ganhos=ganhos,
-            total_gastos=gastos,
-            saldo_atual=ganhos - gastos,
+            total_gastos=gastos_totais,
+            despesas_pendentes=gastos_pendentes,
+            despesas_pagas=gastos_pagos,
+            saldo_atual=ganhos - gastos_pagos,
         )

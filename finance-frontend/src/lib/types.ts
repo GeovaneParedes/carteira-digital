@@ -23,6 +23,8 @@ export interface Transacao {
 export interface Balanco {
   total_ganhos: number;
   total_gastos: number;
+  despesas_pendentes: number;
+  despesas_pagas: number;
   saldo_atual: number;
 }
 

@@ -135,6 +135,8 @@ class BalancoResponse(BaseModel):
 
     total_ganhos: Decimal
     total_gastos: Decimal
+    despesas_pendentes: Decimal
+    despesas_pagas: Decimal
     saldo_atual: Decimal
 
 
