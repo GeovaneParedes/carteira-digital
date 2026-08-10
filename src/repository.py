@@ -90,7 +90,7 @@ class CartaoRepository:
         fatura = float(cartao.fatura_mensal or 0)
         if fatura > 0:
             # 1. Cria uma transação real de GASTO já PAGA no histórico
-            from datetime import date
+            from datetime import datetime, timezone
             transacao_pagamento = TransacaoModel(
                 usuario_id=self.usuario_id,
                 descricao=f"Pagamento Fatura Cartão: {cartao.nome}",
@@ -99,7 +99,7 @@ class CartaoRepository:
                 categoria="Fatura de Cartão",
                 forma_pagamento=FormaPagamento.BOLETO,
                 banco=cartao.bandeira or "Cartão",
-                data_transacao=date.today(),
+                data_transacao=datetime.now(timezone.utc).date(),
                 pago=True,
             )
             self.db.add(transacao_pagamento)
