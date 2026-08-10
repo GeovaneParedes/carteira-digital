@@ -83,6 +83,20 @@ class CartaoRepository:
         self.db.commit()
         return True
 
+    def pagar_fatura(self, cartao_id: int) -> CartaoCreditoModel | None:
+        cartao = self.obter_por_id(cartao_id)
+        if not cartao:
+            return None
+        fatura = cartao.fatura_mensal or 0
+        cartao.fatura_mensal = 0.00
+        if cartao.limite_usado and cartao.limite_usado >= fatura:
+            cartao.limite_usado -= fatura
+        else:
+            cartao.limite_usado = 0.00
+        self.db.commit()
+        self.db.refresh(cartao)
+        return cartao
+
     def inicializar_cartoes_padrao(self) -> list[CartaoCreditoModel]:
         cartoes_iniciais = [
             CartaoCreditoCreate(

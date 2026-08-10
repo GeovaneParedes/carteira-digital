@@ -186,6 +186,20 @@ def deletar_cartao(
         raise HTTPException(status_code=404, detail="Cartão não encontrado")
 
 
+@app.post("/cartoes/{cartao_id}/pagar", response_model=CartaoCreditoResponse)
+def pagar_fatura_cartao(
+    cartao_id: int,
+    db: Session = Depends(get_db),
+    usuario_atual: UsuarioModel = Depends(get_current_user),
+):
+    """Dar baixa na fatura mensal do cartão de crédito (zera a fatura do mês)."""
+    repo = CartaoRepository(db, usuario_id=usuario_atual.id)
+    cartao_atualizado = repo.pagar_fatura(cartao_id)
+    if not cartao_atualizado:
+        raise HTTPException(status_code=404, detail="Cartão não encontrado")
+    return cartao_atualizado
+
+
 # --- ROTAS DE TRANSAÇÕES ---
 
 @app.get("/transacoes", response_model=list[TransacaoResponse])

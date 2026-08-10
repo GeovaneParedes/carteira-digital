@@ -162,6 +162,29 @@ export async function deleteCartao(id: string): Promise<void> {
   if (!res.ok) throw new Error('Erro ao excluir cartão.');
 }
 
+export async function pagarFaturaCartao(id: string): Promise<CartaoCredito> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/cartoes/${id}/pagar`, {
+    method: 'POST',
+    headers: buildHeaders(),
+  });
+  if (!res.ok) throw new Error('Erro ao dar baixa na fatura do cartão.');
+  const c = await res.json();
+  return {
+    id: String(c.id),
+    nome: String(c.nome),
+    bandeira: c.bandeira ? String(c.bandeira) : undefined,
+    limiteTotal: Number(c.limite_total || c.limiteTotal || 0),
+    limiteUsado: Number(c.limite_usado || c.limiteUsado || 0),
+    faturaMensal: Number(c.fatura_mensal || c.faturaMensal || 0),
+    diaFechamento: Number(c.dia_fechamento || c.diaFechamento || 1),
+    diaVencimento: Number(c.dia_vencimento || c.diaVencimento || 10),
+    saldoInvestimento: (c.saldo_investimento || c.saldoInvestimento) ? Number(c.saldo_investimento || c.saldoInvestimento) : undefined,
+    detalhes: c.detalhes ? String(c.detalhes) : undefined,
+    corHex: String(c.cor_hex || c.corHex || '#06b6d4'),
+  };
+}
+
 // --- TRANSAÇÕES ---
 
 export async function fetchBalanco(): Promise<Balanco> {
@@ -202,7 +225,7 @@ export async function createTransacao(data: Omit<Transacao, 'id'>): Promise<Tran
   return res.json();
 }
 
-export async function updateTransacao(id: number, data: Omit<Transacao, 'id'>): Promise<Transacao> {
+export async function updateTransacao(id: number, data: Partial<Omit<Transacao, 'id'>>): Promise<Transacao> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/transacoes/${id}`, {
     method: 'PUT',
