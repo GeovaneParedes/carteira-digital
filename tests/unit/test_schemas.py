@@ -1,8 +1,10 @@
 from decimal import Decimal
+
 import pytest
 from pydantic import ValidationError
+
+from src.models import FormaPagamento, TipoTransacao
 from src.schemas import TransacaoCreate
-from src.models import TipoTransacao, FormaPagamento
 
 
 def test_transacao_create_valida():

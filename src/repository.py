@@ -1,7 +1,7 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.models import CartaoCreditoModel, TipoTransacao, TransacaoModel
+from src.models import CartaoCreditoModel, FormaPagamento, TipoTransacao, TransacaoModel
 from src.schemas import (
     BalancoResponse,
     CartaoCreditoCreate,
@@ -87,14 +87,32 @@ class CartaoRepository:
         cartao = self.obter_por_id(cartao_id)
         if not cartao:
             return None
-        fatura = cartao.fatura_mensal or 0
-        cartao.fatura_mensal = 0.00
-        if cartao.limite_usado and cartao.limite_usado >= fatura:
-            cartao.limite_usado -= fatura
-        else:
-            cartao.limite_usado = 0.00
-        self.db.commit()
-        self.db.refresh(cartao)
+        fatura = float(cartao.fatura_mensal or 0)
+        if fatura > 0:
+            # 1. Cria uma transação real de GASTO já PAGA no histórico
+            from datetime import datetime, timezone
+            transacao_pagamento = TransacaoModel(
+                usuario_id=self.usuario_id,
+                descricao=f"Pagamento Fatura Cartão: {cartao.nome}",
+                tipo=TipoTransacao.GASTO,
+                valor=fatura,
+                categoria="Fatura de Cartão",
+                forma_pagamento=FormaPagamento.BOLETO,
+                banco=cartao.bandeira or "Cartão",
+                data_transacao=datetime.now(timezone.utc).date(),
+                pago=True,
+            )
+            self.db.add(transacao_pagamento)
+
+            # 2. Zera a fatura do mês no cartão e atualiza limites
+            cartao.fatura_mensal = 0.00
+            if cartao.limite_usado and float(cartao.limite_usado) >= fatura:
+                cartao.limite_usado = float(cartao.limite_usado) - fatura
+            else:
+                cartao.limite_usado = 0.00
+
+            self.db.commit()
+            self.db.refresh(cartao)
         return cartao
 
     def inicializar_cartoes_padrao(self) -> list[CartaoCreditoModel]:
@@ -200,7 +218,7 @@ class TransacaoRepository:
             )
             .scalar()
         )
-        gastos = (
+        gastos_totais = (
             self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0))
             .filter(
                 TransacaoModel.usuario_id == self.usuario_id,
@@ -208,9 +226,29 @@ class TransacaoRepository:
             )
             .scalar()
         )
+        gastos_pendentes = (
+            self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0))
+            .filter(
+                TransacaoModel.usuario_id == self.usuario_id,
+                TransacaoModel.tipo == TipoTransacao.GASTO,
+                TransacaoModel.pago == False,
+            )
+            .scalar()
+        )
+        gastos_pagos = (
+            self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0))
+            .filter(
+                TransacaoModel.usuario_id == self.usuario_id,
+                TransacaoModel.tipo == TipoTransacao.GASTO,
+                TransacaoModel.pago == True,
+            )
+            .scalar()
+        )
 
         return BalancoResponse(
             total_ganhos=ganhos,
-            total_gastos=gastos,
-            saldo_atual=ganhos - gastos,
+            total_gastos=gastos_totais,
+            despesas_pendentes=gastos_pendentes,
+            despesas_pagas=gastos_pagos,
+            saldo_atual=ganhos - gastos_pagos,
         )

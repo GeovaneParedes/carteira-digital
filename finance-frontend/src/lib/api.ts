@@ -197,6 +197,8 @@ export async function fetchBalanco(): Promise<Balanco> {
   return {
     total_ganhos: Number(data.total_ganhos || 0),
     total_gastos: Number(data.total_gastos || 0),
+    despesas_pendentes: Number(data.despesas_pendentes || 0),
+    despesas_pagas: Number(data.despesas_pagas || 0),
     saldo_atual: Number(data.saldo_atual || 0),
   };
 }

@@ -1,5 +1,5 @@
 import { Balanco, CartaoCredito } from '../lib/types';
-import { ArrowDownCircle, ArrowUpCircle, Wallet, CreditCard } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, Wallet, CreditCard, CheckCircle2 } from 'lucide-react';
 
 interface Props {
   balanco: Balanco | null;
@@ -14,7 +14,9 @@ export function BalanceCards({ balanco, cartoes = [] }: Props) {
     }).format(val);
 
   const totalGanhos = Number(balanco?.total_ganhos || 0);
-  const despesasContas = Number(balanco?.total_gastos || 0);
+  const despesasPendentes = Number(balanco?.despesas_pendentes || 0);
+  const despesasPagas = Number(balanco?.despesas_pagas || 0);
+  const saldoAtualConta = Number(balanco?.saldo_atual || 0);
 
   // Soma a Fatura Mensal exata dos cartões de crédito a pagar neste mês
   const totalFaturasCartoes = cartoes.reduce(
@@ -22,11 +24,11 @@ export function BalanceCards({ balanco, cartoes = [] }: Props) {
     0
   );
 
-  // Despesa total real do mês = Contas + Faturas de Cartão
-  const despesaTotalReal = despesasContas + totalFaturasCartoes;
+  // Pendências totais ainda por vencer/pagar no mês (Contas pendentes + Cartões)
+  const totalPendenciasMes = despesasPendentes + totalFaturasCartoes;
 
-  // Saldo real que realmente sobra no bolso no fim do mês
-  const saldoReal = totalGanhos - despesaTotalReal;
+  // Saldo projetado no fim do mês (Dinheiro em conta - o que ainda falta pagar)
+  const saldoProjetadoFimMes = saldoAtualConta - totalPendenciasMes;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -39,27 +41,31 @@ export function BalanceCards({ balanco, cartoes = [] }: Props) {
           <h3 className="text-2xl font-bold text-emerald-400 mt-1">
             {formatCurrency(totalGanhos)}
           </h3>
-          <p className="text-[11px] text-slate-500 mt-1">Salário & Ganhos Entrados</p>
+          <p className="text-[11px] text-slate-500 mt-1">Entradas & Salários Registrados</p>
         </div>
         <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
           <ArrowUpCircle className="w-7 h-7" />
         </div>
       </div>
 
-      {/* Card Gastos (Contas + Faturas de Cartão) */}
+      {/* Card Despesas A Pagar (Pendências) */}
       <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
         <div>
           <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-            Total de Despesas (Mês)
+            Despesas a Pagar (Pendentes)
           </p>
           <h3 className="text-2xl font-bold text-rose-400 mt-1">
-            {formatCurrency(despesaTotalReal)}
+            {formatCurrency(totalPendenciasMes)}
           </h3>
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-1">
-            <span>Contas: {formatCurrency(despesasContas)}</span>
+          <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-1 flex-wrap">
+            <span>A pagar: {formatCurrency(despesasPendentes)}</span>
             <span>•</span>
-            <span className="text-amber-400 flex items-center gap-0.5 font-semibold">
+            <span className="text-cyan-400 flex items-center gap-0.5 font-semibold">
               <CreditCard className="w-3 h-3 inline" /> Cartões: {formatCurrency(totalFaturasCartoes)}
+            </span>
+            <span>•</span>
+            <span className="text-emerald-400 font-semibold flex items-center gap-0.5">
+              <CheckCircle2 className="w-3 h-3 inline" /> Pagas: {formatCurrency(despesasPagas)}
             </span>
           </div>
         </div>
@@ -68,20 +74,22 @@ export function BalanceCards({ balanco, cartoes = [] }: Props) {
         </div>
       </div>
 
-      {/* Card Saldo Real Disponível */}
+      {/* Card Saldo em Conta vs Projetado */}
       <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
         <div>
           <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-            Saldo Real Disponível
+            Saldo Atual na Conta
           </p>
           <h3
             className={`text-2xl font-bold mt-1 ${
-              saldoReal >= 0 ? 'text-blue-400' : 'text-rose-500'
+              saldoAtualConta >= 0 ? 'text-blue-400' : 'text-rose-500'
             }`}
           >
-            {formatCurrency(saldoReal)}
+            {formatCurrency(saldoAtualConta)}
           </h3>
-          <p className="text-[11px] text-slate-500 mt-1">Livre após pagar contas + cartões</p>
+          <p className="text-[11px] text-slate-400 mt-1">
+            Projetado fim do mês: <span className="font-semibold text-slate-200">{formatCurrency(saldoProjetadoFimMes)}</span>
+          </p>
         </div>
         <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl">
           <Wallet className="w-7 h-7" />
