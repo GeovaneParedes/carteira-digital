@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Award, Layers, RotateCw, AlertCircle } from 'lucide-react';
 
-interface FII {
+export interface FII {
   ticker: string;
   symbol: string;
   nome: string;
@@ -57,11 +57,26 @@ function fmtMkt(v: number | undefined) {
   return fmtBRL(v);
 }
 
-export function FiisDashboard() {
-  const [fiis, setFiis] = useState<FII[]>([]);
-  const [selectedFii, setSelectedFii] = useState<FII | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<string>('');
+interface FiisDashboardProps {
+  initialFiis?: FII[];
+  onRefreshFiis?: () => void;
+}
+
+export function FiisDashboard({ initialFiis = [], onRefreshFiis }: FiisDashboardProps) {
+  const [fiis, setFiis] = useState<FII[]>(initialFiis);
+  const [selectedFii, setSelectedFii] = useState<FII | null>(initialFiis[0] || null);
+  const [loading, setLoading] = useState(initialFiis.length === 0);
+  const [lastUpdate, setLastUpdate] = useState<string>(initialFiis.length > 0 ? new Date().toLocaleTimeString('pt-BR') : '');
+
+  useEffect(() => {
+    if (initialFiis.length > 0) {
+      setFiis(initialFiis);
+      setSelectedFii(initialFiis[0] || null);
+      setLoading(false);
+    } else {
+      carregarDados();
+    }
+  }, [initialFiis]);
 
   async function carregarDados() {
     setLoading(true);
@@ -75,6 +90,7 @@ export function FiisDashboard() {
       setFiis(top5);
       setSelectedFii(top5[0] || null);
       setLastUpdate(new Date().toLocaleTimeString('pt-BR'));
+      if (onRefreshFiis) onRefreshFiis();
     } catch (err) {
       console.error('Erro ao carregar FIIs em tempo real:', err);
       // Fallback para não zerar a tela em caso de falha de rede
@@ -91,10 +107,6 @@ export function FiisDashboard() {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    carregarDados();
-  }, []);
 
   const dyMax = fiis.reduce((m, f) => Math.max(m, f.dy || 0), 0);
   const dyFii = fiis.find((f) => f.dy === dyMax);

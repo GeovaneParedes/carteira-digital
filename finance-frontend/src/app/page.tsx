@@ -7,7 +7,7 @@ import { TransactionList } from '@/components/TransactionList';
 import { CreditCardCard } from '@/components/CreditCardCard';
 import { CardModal } from '@/components/CardModal';
 import { EditTransactionModal } from '@/components/EditTransactionModal';
-import { FiisDashboard } from '@/components/FiisDashboard';
+import { FiisDashboard, FII } from '@/components/FiisDashboard';
 import { Balanco, Transacao, CartaoCredito } from '@/lib/types';
 import { fetchBalanco, fetchTransacoes, deleteTransacao, loginUser, registerUser, solicitarCodigoRecuperacao, redefinirSenhaComCodigo, fetchCartoes, createCartao, updateCartao, deleteCartao, updateTransacao, pagarFaturaCartao } from '@/lib/api';
 import { Lock, RefreshCw, UserRound, LayoutDashboard, TrendingUp, Plus, CreditCard as CardIcon, Eye, EyeOff, KeyRound, Mail, ArrowLeft } from 'lucide-react';
@@ -89,6 +89,8 @@ export default function DashboardPage() {
     }
   }
 
+  const [fiisPrecached, setFiisPrecached] = useState<FII[]>([]);
+
   async function loadData() {
     setLoading(true);
     try {
@@ -96,6 +98,18 @@ export default function DashboardPage() {
       setBalanco(b);
       setTransacoes(t);
       setCartoes(c);
+
+      // Pré-fetch em segundo plano (background) dos FIIs para navegação instantânea em 0ms
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.100.9:8010';
+      fetch(`${baseUrl}/fiis`)
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            setFiisPrecached(data.slice(0, 5));
+          }
+        })
+        .catch((err) => console.error('Erro silencioso no pré-fetch dos FIIs:', err));
+
     } catch (err) {
       console.error(err);
       setError('Não foi possível carregar os dados. Verifique o login e a API.');
@@ -482,7 +496,7 @@ export default function DashboardPage() {
             </div>
           </>
         ) : (
-          <FiisDashboard />
+          <FiisDashboard initialFiis={fiisPrecached} />
         )}
       </div>
 

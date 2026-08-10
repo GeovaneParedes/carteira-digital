@@ -107,11 +107,11 @@ export function TransactionList({
                 </span>
               ) : item.pago ? (
                 <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Pago
+                  <CheckCircle2 className="w-3 h-3" /> {item.tipo === 'GANHO' ? 'Recebido' : 'Pago'}
                 </span>
               ) : (
                 <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" /> Pendente
+                  <AlertCircle className="w-3 h-3" /> {item.tipo === 'GANHO' ? 'A Receber' : 'Pendente'}
                 </span>
               )}
             </div>
@@ -154,7 +154,7 @@ export function TransactionList({
                 </button>
               ) : (
                 <>
-                  {/* Botão de Alternar Pago / Pendente */}
+                  {/* Botão de Alternar Pago/Recebido vs Pendente */}
                   <button
                     onClick={() => item.transacaoOriginal && onToggleStatus && onToggleStatus(item.transacaoOriginal)}
                     className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition ${
@@ -162,10 +162,24 @@ export function TransactionList({
                         ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
                         : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
                     }`}
-                    title={item.pago ? 'Marcar como pendente' : 'Marcar conta como paga'}
+                    title={
+                      item.pago
+                        ? item.tipo === 'GANHO'
+                          ? 'Marcar como a receber'
+                          : 'Marcar como pendente'
+                        : item.tipo === 'GANHO'
+                        ? 'Marcar como recebido'
+                        : 'Marcar conta como paga'
+                    }
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    {item.pago ? 'PAGO' : 'Pagar'}
+                    {item.pago
+                      ? item.tipo === 'GANHO'
+                        ? 'RECEBIDO'
+                        : 'PAGO'
+                      : item.tipo === 'GANHO'
+                      ? 'Receber'
+                      : 'Pagar'}
                   </button>
 
                   <button
