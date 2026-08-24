@@ -20,6 +20,7 @@ function buildHeaders(extraHeaders: Record<string, string> = {}): HeadersInit {
   const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
+    'bypass-tunnel-reminder': 'true',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...extraHeaders,
   };

@@ -100,8 +100,8 @@ export default function DashboardPage() {
       setCartoes(c);
 
       // Pré-fetch em segundo plano (background) dos FIIs para navegação instantânea em 0ms
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.100.9:8010';
-      fetch(`${baseUrl}/fiis`)
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api-carteira-devgege.loca.lt';
+      fetch(`${baseUrl}/fiis`, { headers: { 'bypass-tunnel-reminder': 'true' } })
         .then((res) => (res.ok ? res.json() : []))
         .then((data) => {
           if (Array.isArray(data) && data.length > 0) {
