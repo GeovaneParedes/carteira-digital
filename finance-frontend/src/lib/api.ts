@@ -188,9 +188,14 @@ export async function pagarFaturaCartao(id: string): Promise<CartaoCredito> {
 
 // --- TRANSAÇÕES ---
 
-export async function fetchBalanco(): Promise<Balanco> {
+export async function fetchBalanco(mes?: number, ano?: number): Promise<Balanco> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(`${baseUrl}/transacoes/balanco`, {
+  const params = new URLSearchParams();
+  if (mes !== undefined) params.append('mes', String(mes));
+  if (ano !== undefined) params.append('ano', String(ano));
+  const queryString = params.toString() ? `?${params.toString()}` : '';
+
+  const res = await fetch(`${baseUrl}/transacoes/balanco${queryString}`, {
     headers: buildHeaders(),
   });
   if (!res.ok) throw new Error('Falha ao carregar balanço.');
@@ -204,9 +209,14 @@ export async function fetchBalanco(): Promise<Balanco> {
   };
 }
 
-export async function fetchTransacoes(): Promise<Transacao[]> {
+export async function fetchTransacoes(mes?: number, ano?: number): Promise<Transacao[]> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(`${baseUrl}/transacoes`, {
+  const params = new URLSearchParams();
+  if (mes !== undefined) params.append('mes', String(mes));
+  if (ano !== undefined) params.append('ano', String(ano));
+  const queryString = params.toString() ? `?${params.toString()}` : '';
+
+  const res = await fetch(`${baseUrl}/transacoes${queryString}`, {
     headers: buildHeaders(),
   });
   if (!res.ok) throw new Error('Falha ao carregar transações.');

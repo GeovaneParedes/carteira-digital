@@ -1,3 +1,6 @@
+import calendar
+from datetime import date
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -167,13 +170,14 @@ class TransacaoRepository:
         self.db.refresh(transacao)
         return transacao
 
-    def listar_todas(self) -> list[TransacaoModel]:
-        return (
-            self.db.query(TransacaoModel)
-            .filter(TransacaoModel.usuario_id == self.usuario_id)
-            .order_by(TransacaoModel.data_transacao.desc())
-            .all()
-        )
+    def listar_todas(self, mes: int | None = None, ano: int | None = None) -> list[TransacaoModel]:
+        query = self.db.query(TransacaoModel).filter(TransacaoModel.usuario_id == self.usuario_id)
+        if mes is not None and ano is not None:
+            ultimo_dia = calendar.monthrange(ano, mes)[1]
+            data_inicio = date(ano, mes, 1)
+            data_fim = date(ano, mes, ultimo_dia)
+            query = query.filter(TransacaoModel.data_transacao.between(data_inicio, data_fim))
+        return query.order_by(TransacaoModel.data_transacao.desc()).all()
 
     def obter_por_id(self, transacao_id: int) -> TransacaoModel | None:
         return (
@@ -209,41 +213,31 @@ class TransacaoRepository:
         self.db.commit()
         return True
 
-    def calcular_balanco(self) -> BalancoResponse:
-        ganhos = (
-            self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0))
-            .filter(
-                TransacaoModel.usuario_id == self.usuario_id,
-                TransacaoModel.tipo == TipoTransacao.GANHO,
-            )
-            .scalar()
+    def calcular_balanco(self, mes: int | None = None, ano: int | None = None) -> BalancoResponse:
+        query_ganhos = self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0)).filter(
+            TransacaoModel.usuario_id == self.usuario_id,
+            TransacaoModel.tipo == TipoTransacao.GANHO,
         )
-        gastos_totais = (
-            self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0))
-            .filter(
-                TransacaoModel.usuario_id == self.usuario_id,
-                TransacaoModel.tipo == TipoTransacao.GASTO,
-            )
-            .scalar()
+        query_gastos = self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0)).filter(
+            TransacaoModel.usuario_id == self.usuario_id,
+            TransacaoModel.tipo == TipoTransacao.GASTO,
         )
-        gastos_pendentes = (
-            self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0))
-            .filter(
-                TransacaoModel.usuario_id == self.usuario_id,
-                TransacaoModel.tipo == TipoTransacao.GASTO,
-                TransacaoModel.pago == False,
-            )
-            .scalar()
-        )
-        gastos_pagos = (
-            self.db.query(func.coalesce(func.sum(TransacaoModel.valor), 0))
-            .filter(
-                TransacaoModel.usuario_id == self.usuario_id,
-                TransacaoModel.tipo == TipoTransacao.GASTO,
-                TransacaoModel.pago == True,
-            )
-            .scalar()
-        )
+        query_pendentes = query_gastos.filter(TransacaoModel.pago == False)
+        query_pagos = query_gastos.filter(TransacaoModel.pago == True)
+
+        if mes is not None and ano is not None:
+            ultimo_dia = calendar.monthrange(ano, mes)[1]
+            data_inicio = date(ano, mes, 1)
+            data_fim = date(ano, mes, ultimo_dia)
+            query_ganhos = query_ganhos.filter(TransacaoModel.data_transacao.between(data_inicio, data_fim))
+            query_gastos = query_gastos.filter(TransacaoModel.data_transacao.between(data_inicio, data_fim))
+            query_pendentes = query_pendentes.filter(TransacaoModel.data_transacao.between(data_inicio, data_fim))
+            query_pagos = query_pagos.filter(TransacaoModel.data_transacao.between(data_inicio, data_fim))
+
+        ganhos = query_ganhos.scalar()
+        gastos_totais = query_gastos.scalar()
+        gastos_pendentes = query_pendentes.scalar()
+        gastos_pagos = query_pagos.scalar()
 
         return BalancoResponse(
             total_ganhos=ganhos,

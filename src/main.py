@@ -4,7 +4,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,7 @@ from src.auth import (
     hash_password,
     verify_password,
 )
-from src.database import Base, engine, get_db
+from src.database import get_db, init_db
 from src.email_service import enviar_email_codigo_recuperacao
 from src.models import UsuarioModel
 from src.repository import CartaoRepository, TransacaoRepository
@@ -35,7 +35,7 @@ from src.schemas import (
 
 logger = logging.getLogger(__name__)
 
-Base.metadata.create_all(bind=engine)
+init_db()
 
 app = FastAPI(title="Carteira Digital API", version="1.0.0")
 
@@ -204,12 +204,14 @@ def pagar_fatura_cartao(
 
 @app.get("/transacoes", response_model=list[TransacaoResponse])
 def listar_transacoes(
+    mes: int | None = Query(None, ge=1, le=12, description="Mês de competência (1-12)"),
+    ano: int | None = Query(None, ge=2000, le=2100, description="Ano de competência"),
     db: Session = Depends(get_db),
     usuario_atual: UsuarioModel = Depends(get_current_user),
 ):
     """Lista todas as transações do usuário autenticado."""
     repo = TransacaoRepository(db, usuario_id=usuario_atual.id)
-    return repo.listar_todas()
+    return repo.listar_todas(mes=mes, ano=ano)
 
 
 @app.post("/transacoes", response_model=TransacaoResponse, status_code=status.HTTP_201_CREATED)
@@ -225,12 +227,14 @@ def criar_transacao(
 
 @app.get("/transacoes/balanco", response_model=BalancoResponse)
 def obter_balanco(
+    mes: int | None = Query(None, ge=1, le=12, description="Mês de competência (1-12)"),
+    ano: int | None = Query(None, ge=2000, le=2100, description="Ano de competência"),
     db: Session = Depends(get_db),
     usuario_atual: UsuarioModel = Depends(get_current_user),
 ):
     """Obtém os somatórios de ganhos, gastos e saldo do usuário."""
     repo = TransacaoRepository(db, usuario_id=usuario_atual.id)
-    return repo.calcular_balanco()
+    return repo.calcular_balanco(mes=mes, ano=ano)
 
 
 @app.put("/transacoes/{transacao_id}", response_model=TransacaoResponse)
