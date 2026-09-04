@@ -273,6 +273,11 @@ def test_obter_balanco_filtrado_por_mes_e_ano(client, auth_headers):
         headers=auth_headers,
     )
 
+    # Consulta Listagem de Agosto/2026: deve conter exatamente 2 transacoes
+    res_list_ago = client.get("/transacoes?mes=8&ano=2026", headers=auth_headers)
+    assert res_list_ago.status_code == 200
+    assert len(res_list_ago.json()) == 2
+
     # Consulta Balanço de Agosto/2026: deve conter apenas 1800 de ganho e 600 de gasto pago (saldo 1200)
     res_ago = client.get("/transacoes/balanco?mes=8&ano=2026", headers=auth_headers)
     assert res_ago.status_code == 200
@@ -288,3 +293,10 @@ def test_obter_balanco_filtrado_por_mes_e_ano(client, auth_headers):
     assert float(bal_set["total_ganhos"]) == 2000.00
     assert float(bal_set["despesas_pagas"]) == 0.00
     assert float(bal_set["saldo_atual"]) == 2000.00
+
+    # Validação: informar apenas 'mes' ou apenas 'ano' deve retornar 422 Unprocessable Entity
+    res_err_mes = client.get("/transacoes?mes=8", headers=auth_headers)
+    assert res_err_mes.status_code == 422
+
+    res_err_ano = client.get("/transacoes/balanco?ano=2026", headers=auth_headers)
+    assert res_err_ano.status_code == 422

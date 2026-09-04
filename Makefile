@@ -10,12 +10,12 @@ FRONTEND_PID_FILE := .frontend.pid
 
 # Cria o ambiente virtual com Python 3
 amb:
-	python3 -m venv env
+	python3 -m venv $(VENV_PATH)
 
 # Instala dependências usando o pip do ambiente virtual diretamente
 install:
-	./env/bin/pip install --upgrade pip
-	./env/bin/pip install -r requirements.txt
+	$(VENV_BIN)/pip install --upgrade pip
+	$(VENV_BIN)/pip install -r requirements.txt
 
 # Docker Compose moderno (Plugin CLI v2 - sem hífen)
 build:
@@ -29,14 +29,14 @@ down:
 
 # Suíte de testes com o pytest do venv
 test:
-	PYTHONPATH=. ./env/bin/pytest tests/
+	PYTHONPATH=. $(VENV_BIN)/pytest tests/
 
 # Linter e Formatação moderna rápida com Ruff
 lint:
-	./env/bin/ruff check src/
+	$(VENV_BIN)/ruff check src/
 
 format:
-	./env/bin/ruff format src/
+	$(VENV_BIN)/ruff format src/
 
 # Sobe tudo localmente: Postgres (Docker), API (Uvicorn) e Frontend (Next.js)
 app-up:
@@ -49,9 +49,10 @@ app-up:
 		echo "API ja esta rodando (PID $$(cat $(API_PID_FILE)))."; \
 	else \
 		cd . && \
-		DATABASE_URL=postgresql://finance_user:finance_password@localhost:5433/finance_db \
-		SECRET_KEY=carteira-digital-local-secret-key \
-		ACCESS_TOKEN_EXPIRE_MINUTES=43200 \
+		set -a; [ -f .env ] && . .env; set +a; \
+		DATABASE_URL=$${DATABASE_URL:-postgresql://finance_user:finance_password@localhost:5433/finance_db} \
+		SECRET_KEY=$${SECRET_KEY:-carteira-digital-local-secret-key} \
+		ACCESS_TOKEN_EXPIRE_MINUTES=$${ACCESS_TOKEN_EXPIRE_MINUTES:-43200} \
 		setsid nohup "$(VENV_BIN)/uvicorn" src.main:app --host 0.0.0.0 --port $(API_PORT) $(API_RELOAD) > /tmp/carteira-api.log 2>&1 & \
 		pid=$$!; \
 		echo $$pid > "$(API_PID_FILE)"; \

@@ -210,6 +210,11 @@ def listar_transacoes(
     usuario_atual: UsuarioModel = Depends(get_current_user),
 ):
     """Lista todas as transações do usuário autenticado."""
+    if (mes is None and ano is not None) or (mes is not None and ano is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Os parâmetros 'mes' e 'ano' devem ser informados juntos para filtragem de competência.",
+        )
     repo = TransacaoRepository(db, usuario_id=usuario_atual.id)
     return repo.listar_todas(mes=mes, ano=ano)
 
@@ -233,6 +238,11 @@ def obter_balanco(
     usuario_atual: UsuarioModel = Depends(get_current_user),
 ):
     """Obtém os somatórios de ganhos, gastos e saldo do usuário."""
+    if (mes is None and ano is not None) or (mes is not None and ano is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Os parâmetros 'mes' e 'ano' devem ser informados juntos para filtragem de competência.",
+        )
     repo = TransacaoRepository(db, usuario_id=usuario_atual.id)
     return repo.calcular_balanco(mes=mes, ano=ano)
 
