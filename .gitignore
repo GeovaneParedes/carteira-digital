@@ -32,8 +32,11 @@ build/
 .env.local
 .env.*.local
 
-# OS generated files
+# OS generated files & Local session state
 .DS_Store
 Thumbs.db
 .vercel
 .env*
+*.pid
+SESSION_STATE.md
+

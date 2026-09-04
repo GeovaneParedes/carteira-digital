@@ -227,3 +227,76 @@ def test_pagar_fatura_cartao(client, auth_headers):
     data = res_pagar.json()
     assert float(data.get("fatura_mensal", data.get("faturaMensal"))) == 0.00
     assert float(data.get("limite_usado", data.get("limiteUsado"))) == 1000.00
+
+
+def test_obter_balanco_filtrado_por_mes_e_ano(client, auth_headers):
+    # Transação em Agosto/2026: Salário R$ 1800,00 e Conta Paga R$ 600,00
+    client.post(
+        "/transacoes",
+        json={
+            "descricao": "Salário Agosto",
+            "tipo": "GANHO",
+            "valor": 1800.00,
+            "categoria": "Salário",
+            "forma_pagamento": "PIX",
+            "data_transacao": "2026-08-05",
+            "pago": True,
+        },
+        headers=auth_headers,
+    )
+    client.post(
+        "/transacoes",
+        json={
+            "descricao": "Aluguel Agosto",
+            "tipo": "GASTO",
+            "valor": 600.00,
+            "categoria": "Moradia",
+            "forma_pagamento": "PIX",
+            "data_transacao": "2026-08-10",
+            "pago": True,
+        },
+        headers=auth_headers,
+    )
+
+    # Transação em Setembro/2026: Salário R$ 2000,00
+    client.post(
+        "/transacoes",
+        json={
+            "descricao": "Salário Setembro",
+            "tipo": "GANHO",
+            "valor": 2000.00,
+            "categoria": "Salário",
+            "forma_pagamento": "PIX",
+            "data_transacao": "2026-09-05",
+            "pago": True,
+        },
+        headers=auth_headers,
+    )
+
+    # Consulta Listagem de Agosto/2026: deve conter exatamente 2 transacoes
+    res_list_ago = client.get("/transacoes?mes=8&ano=2026", headers=auth_headers)
+    assert res_list_ago.status_code == 200
+    assert len(res_list_ago.json()) == 2
+
+    # Consulta Balanço de Agosto/2026: deve conter apenas 1800 de ganho e 600 de gasto pago (saldo 1200)
+    res_ago = client.get("/transacoes/balanco?mes=8&ano=2026", headers=auth_headers)
+    assert res_ago.status_code == 200
+    bal_ago = res_ago.json()
+    assert float(bal_ago["total_ganhos"]) == 1800.00
+    assert float(bal_ago["despesas_pagas"]) == 600.00
+    assert float(bal_ago["saldo_atual"]) == 1200.00
+
+    # Consulta Balanço de Setembro/2026: deve conter apenas 2000 de ganho
+    res_set = client.get("/transacoes/balanco?mes=9&ano=2026", headers=auth_headers)
+    assert res_set.status_code == 200
+    bal_set = res_set.json()
+    assert float(bal_set["total_ganhos"]) == 2000.00
+    assert float(bal_set["despesas_pagas"]) == 0.00
+    assert float(bal_set["saldo_atual"]) == 2000.00
+
+    # Validação: informar apenas 'mes' ou apenas 'ano' deve retornar 422 Unprocessable Entity
+    res_err_mes = client.get("/transacoes?mes=8", headers=auth_headers)
+    assert res_err_mes.status_code == 422
+
+    res_err_ano = client.get("/transacoes/balanco?ano=2026", headers=auth_headers)
+    assert res_err_ano.status_code == 422
